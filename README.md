@@ -25,7 +25,7 @@
 - review/update environment.sh file
 - if needed, create docker/credentials.txt (based on docker/credentials.template.txt)
 - run go.sh -h               # display help
-- run go.sh -b -q xxxx       # build os xxxx container image
+- run go.sh -r -b -q xxxx    # build os xxxx container image
 - run go.sh -r -p -q xxxx    # build opensvc package on latest git commit id
 
 ## todo

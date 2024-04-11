@@ -1,0 +1,4 @@
+credentials.txt
+docker/credentials.txt
+tools/out/*
+tools/tmp/*

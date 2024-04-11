@@ -1,0 +1,83 @@
+#!/usr/bin/make -f
+#
+export SHELL := /bin/bash
+export PATH := /opt/go/bin:$(PATH)
+export OSVCDIST := $(SHELL echo '$(OSVCDIST)')
+export DH_VERBOSE := 1
+export DH_OPTIONS := -v
+
+%:
+	dh $@ --with bash-completion --builddirectory=_build --buildsystem=golang
+
+override_dh_auto_install:
+	dh_auto_install -- --no-source
+
+override_dh_auto_configure:
+	@
+
+override_dh_auto_build:
+	@echo "BUILDING BINARY"
+#go version
+#env | grep GO
+#	CGO_ENABLED=0 go build -v ./cmd/om ./cmd/ox ./util/compobj
+	@echo "==> make version"
+	env
+	echo $(TAG) > ./util/version/text/VERSION
+	@echo "==> make om"
+	make om
+	@echo "==> make ox"
+	make ox
+	@echo "==> make compobj"
+	make compobj
+	@echo "END BUILDING BINARY"
+
+override_dh_auto_test:
+	@echo "TODO AUTO TEST"
+
+override_dh_strip:
+	@echo "DISABLE BINARY STRIPPING"
+
+override_dh_install:
+	@echo "DH INSTALL"
+	pwd
+	bin/om completion bash > debian/om-completion
+	bin/ox completion bash > debian/ox-completion
+	@echo "rootscripts $(rootscripts) $(OSVCDIST)"
+	dh_install
+	@echo "END DH INSTALL"
+
+override_dh_link:
+	@echo "DH LINK"
+ifeq (,$(filter opensvc-server, ${build-pkgs}))
+	mkdir ./debian/opensvc-server/usr/share/opensvc/compliance
+	find ./debian/opensvc-server
+	cd debian/opensvc-server/usr/lib/opensvc/; ./compobj -r -i ../../share/opensvc/compliance
+endif
+	@echo "END DH LINK"
+
+override_dh_bash_completion:
+	@echo "DH BASH COMPLETION"
+
+# http://manpages.debian.org/dh_dwz
+override_dh_dwz:
+	# dh_dwz in debhelper versions less than 13 has issues with files that are missing debug symbols (once we update to debhelper-compat 13+ this can be removed)
+	@# https://packages.debian.org/debhelper
+	@# https://packages.ubuntu.com/debhelper
+
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip
+
+override_dh_installinit:
+	@echo "DH INSTALLINIT"
+ifneq (,$(filter opensvc-client, ${build-pkgs}))
+	# TO FIX
+	dh_installinit --name=opensvc-agent opensvc.opensvc-agent.service
+	dh_installinit --name=opensvc-services opensvc.opensvc-services.service
+endif
+	@echo "END DH INSTALLINIT"
+
+override_dh_installsystemd:
+	@echo "DH INSTALLSYSTEMD"
+	dh_installsystemd --no-package=opensvc-client --name=opensvc-agent opensvc-agent.service
+	dh_installsystemd --no-package=opensvc-client --no-start --name=opensvc-services opensvc-services.service
+	@echo "END DH INSTALLSYSTEMD"

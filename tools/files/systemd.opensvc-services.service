@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenSVC agent and services oneshot stopper
+Documentation=https://docs.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
+After=opensvc-agent.service
+
+[Service]
+Type=oneshot
+TimeoutStopSec=1h
+RemainAfterExit=true
+ExecStart=/usr/bin/om node pushasset
+ExecStop=/usr/bin/om daemon shutdown
+

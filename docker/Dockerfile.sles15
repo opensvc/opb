@@ -1,0 +1,40 @@
+FROM alpine:3.17 AS builder
+
+ARG OSVC_GITREPO_URL
+ARG OSVC_GOLANG_URL
+
+RUN apk add --no-cache curl git tar go
+
+WORKDIR /opt
+
+RUN git clone $OSVC_GITREPO_URL opensvc
+
+RUN curl --silent --output go.tar.gz -L $OSVC_GOLANG_URL && \
+    tar xzf go.tar.gz && \
+    rm -f go.tar.gz && \
+    mkdir /opt/gopath
+
+RUN cd /opt/opensvc && GOPATH=/opt/gopath /opt/go/bin/go get ./cmd/om ./cmd/ox ./util/compobj
+
+FROM registry.suse.com/suse/sle15
+
+COPY --from=builder /opt/opensvc /opt/opensvc
+
+COPY --from=builder /opt/go /opt/go
+
+COPY --from=builder /opt/gopath /opt/gopath
+
+RUN zypper --gpg-auto-import-keys refresh && \
+    zypper --gpg-auto-import-keys -n --non-interactive install gcc git rpm-build rpmlint sudo && \
+    zypper clean
+
+RUN echo -e "export PATH=/opt/go/bin:$PATH\nexport GOPATH=/opt/gopath" >> /etc/profile.d/golang.sh
+
+RUN groupadd --gid 2345 builder && useradd --uid 2345 --gid builder --create-home --shell /bin/bash builder
+
+COPY ./docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["build"]
+
+LABEL org.opencontainers.image.title="OpenSVC Package Builder"
+LABEL org.opencontainers.image.authors="OpenSVC <support@opensvc.com>"
