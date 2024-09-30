@@ -56,6 +56,7 @@ function check_data() {
     ARTIFACT=$1
     shift
     VARS="$@"
+    . $ARTIFACT
     for V in $VARS
     do
         [ -z "$V" ] && {
