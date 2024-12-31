@@ -37,6 +37,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-in
     git \
     golang-any \
     less \
+    lsb-release \
     lintian \
     sudo \
     vim \
