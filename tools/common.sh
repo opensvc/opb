@@ -129,6 +129,16 @@ function gen_pattern() {
               STR="$STR+pr$PULLREQUESTID"
 	  fi
       fi
+
+      grep -qi "ID=debian" /etc/os-release && {
+              . /etc/os-release
+              STR="$STR+deb$VERSION_ID"
+      }
+      grep -qi "ID=ubuntu" /etc/os-release && {
+              . /etc/os-release
+              STR="$STR+ubuntu$VERSION_ID"
+      }
+
       echo $STR
 }
 
