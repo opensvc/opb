@@ -98,6 +98,17 @@ function gen_units {
     cp $ROOTSCRIPTS/files/systemd.opensvc-services.service $DEBIANFILESDIR/opensvc-server.opensvc-services.service
 }
 
+function setup_debsig {
+    # keyring
+    mkdir -p /usr/share/debsig/keyrings/${GPGKEYID^^}
+    gpg --no-default-keyring \
+        --keyring /usr/share/debsig/keyrings/${GPGKEYID^^}/debsig.gpg \
+	 --import /tools/files/pkgsign_pub.gpg
+    # policy
+    mkdir -p /etc/debsig/policies/${GPGKEYID^^}
+    cat /tools/files/keyid.pol | sed -e "s/GPGKEYID/${GPGKEYID^^}/" > /etc/debsig/policies/${GPGKEYID^^}/keyid.pol
+}
+
 function gen_install {
     cat - <<-EOF >$DEBIANFILESDIR/opensvc-server.install
 #!/usr/bin/dh-exec
@@ -118,16 +129,24 @@ function gen_dirs {
     cat - <<-EOF >$DEBIANFILESDIR/opensvc-server.dirs
 etc/opensvc
 var/lib/opensvc
-var/tmp/opensvc
+var/log/opensvc
 usr/share/opensvc/html
 usr/lib/opensvc
 EOF
 
 }
 
+function gen_source_format {
+    mkdir -p $DEBIANFILESDIR/source
+    cat - <<-EOF >$DEBIANFILESDIR/source/format
+3.0 (native)
+EOF
+}
+
 function build_deb {
     (cd $DEBIANFILESDIR/.. && \
-        dpkg-buildpackage --build=binary \
+        dpkg-buildpackage --build=full \
+                          --sign-key=${GPGKEYID} \
                           --hook-build=${ROOTSCRIPTS}/files/hook.build.sh \
                           --hook-done=${ROOTSCRIPTS}/files/hook.done.sh \
                       )
@@ -145,10 +164,10 @@ function expose_data {
         echo "REPO=$OSVCREPO" >> $ARTIFACT
         DEBF=$(ls -1 $DEBBUILDTOP/$prefix*.deb)
         DEB=$(basename $DEBF)
-        cp $DEBBUILDTOP/$DEB $DATAROOT
         echo "DEB=$DEB" >> $ARTIFACT
+        echo "PKGARCH=$ARCH" >> $ARTIFACT
 
-        DEBSHA256=$(sha256sum $DATAROOT/$DEB | awk '{print $1}')
+        DEBSHA256=$(sha256sum $DEBBUILDTOP/$DEB | awk '{print $1}')
         echo "DEBSHA256=$DEBSHA256" >> $ARTIFACT
 
         echo
@@ -156,6 +175,8 @@ function expose_data {
         cat $ARTIFACT
         check_data $ARTIFACT REPO DEB DEBSHA256 || return 1
     done
+    # copy all files
+    ( cd $DEBBUILDTOP && cp $(ls --file-type | grep -v '.*/$') $DATAROOT )
 
     echo
     title "ls -l $DATAROOT"
@@ -164,11 +185,8 @@ function expose_data {
 }
 
 function cleanup {
-    echo "Cleanup"
     sudo rm -rf $DEBBUILDTOP
 }
-
-
 
 ######################################
 ######################################
@@ -177,6 +195,15 @@ DEBBUILDTOP="$ROOTSCRIPTS/tmp/debbuild/${OSVCDIST}"
 CHANGELOG=$(changelog)
 PATTERN=$(gen_pattern)
 DEBIANFILESDIR="$DEBBUILDTOP/opensvc-${PATTERN}/debian"
+
+title "Cleanup"
+cleanup || exit 1
+
+echo "==> Setup gpg"
+setup_gpg_repo
+
+echo "==> Setup debsig"
+setup_debsig
 
 title "Preparing buildroot"
 prepare_debbuildtop || exit 1
@@ -199,6 +226,9 @@ gen_rules || exit 1
 title "Preparing systemd unit files"
 gen_units || exit 1
 
+title "Preparing source files"
+gen_source_format || exit 1
+
 title "Preparing install file"
 gen_install || exit 1
 
@@ -211,5 +241,5 @@ build_deb || exit 1
 title "Exposing generated datas"
 expose_data || exit 1
 
-#echo "==> Cleanup"
+echo "==> Cleanup"
 #cleanup || exit 1
