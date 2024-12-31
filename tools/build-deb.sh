@@ -5,9 +5,11 @@ set -ea
 GIT="git"
 
 function changelog {
+    TGTDIST="unstable"
+    [[ "$ISRELEASE" == "true" ]] && TGTDIST="stable"
     ( cd /opt/opensvc && \
       local PATTERN=$(gen_pattern)
-      $GIT log --date=rfc2822 -n 1 --pretty=format:"opensvc (__V__) unstable; urgency=medium%n%n  * %s%n%n -- %an <%ae>  %ad%n" | \
+      $GIT log --date=rfc2822 -n 1 --pretty=format:"opensvc (__V__) $TGTDIST; urgency=medium%n%n  * %s%n%n -- %an <%ae>  %ad%n" | \
       awk -v VERSIONRELEASE="$PATTERN" '{ sub(/__V__/,VERSIONRELEASE,$0); print $0 }'
     )
 }
