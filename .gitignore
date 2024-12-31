@@ -2,3 +2,5 @@ credentials.txt
 docker/credentials.txt
 tools/out/*
 tools/tmp/*
+tools/files/pkgsign_priv.gpg
+tools/files/pkgsign_pub.gpg
