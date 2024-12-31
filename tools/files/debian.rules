@@ -65,7 +65,8 @@ override_dh_dwz:
 	@# https://packages.ubuntu.com/debhelper
 
 override_dh_builddeb:
-	dh_builddeb -- -Zgzip
+	@echo "DH BUILDDEB"
+        dh_builddeb -- -Zgzip
 
 override_dh_installinit:
 	@echo "DH INSTALLINIT"
