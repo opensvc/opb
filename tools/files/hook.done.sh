@@ -12,5 +12,10 @@ do
 	echo "problem with deb package ${ROOTSCRIPTS}/tmp/debbuild/${OSVCDIST}/${pkg}"
 	exit 1
     }
+    echo -e "\n--- linting $pkg ---"
+    # -c check
+    # -i include detailed description
+    # -I display informational messages
+    lintian -c $pkg
     echo
 done
