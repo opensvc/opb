@@ -34,7 +34,7 @@ RUN subscription-manager register --org $RH_ORG_ID --activationkey $RH_ACT_KEY -
     subscription-manager repos --enable rhel-8-for-x86_64-supplementary-rpms && \
     subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
 
-RUN dnf -y --setopt=install_weak_deps=False install gcc git rpm-build rpm-sign rpmlint sudo && \
+RUN dnf -y --setopt=install_weak_deps=False install gcc git rpm-build rpm-sign rpmlint sudo make && \
     dnf -y --setopt=install_weak_deps=False groupinstall "RPM Development Tools" && \
     dnf clean all
 
