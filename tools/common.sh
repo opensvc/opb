@@ -29,6 +29,9 @@ ISPULLREQUEST="false"
 # pull request number (123 in pull/123)
 PULLREQUESTID=""
 
+# gpg key identifier
+GPGKEYID=""
+
 # source code git repository path
 OSVC="/opt/opensvc"
 
@@ -88,7 +91,7 @@ function update_repo() {
     title "UPDATING GIT REPO"
     sudo git config --global --add safe.directory ${OSVC} >> /dev/null 2>&1
     cd ${OSVC} && { 
-        sudo git pull --all --tags --progress || exit 1
+        sudo git reset --hard && sudo git pull --quiet --all --tags || exit 1
     }
 }
 
@@ -190,6 +193,25 @@ function checkout_code() {
     else
         checkout_branch $1 || return 1
     fi
+}
+
+function setup_gpg_repo() {
+    for key in pub priv
+    do
+        [[ ! -f /tools/files/pkgsign_${key}.gpg ]] && {
+	    echo "gpg key /tools/files/pkgsign_${key}.gpg is missing. exiting"
+	    exit 1
+	}
+	gpg --import /tools/files/pkgsign_${key}.gpg
+    done
+
+    gpg --list-keys
+
+    GPGKEYID=$(gpg --list-keys --with-colons | awk -F: '/^sub/ { if ($12 ~ /s/) print tolower($5) }')
+
+    echo -e "trust\n5\ny" | gpg --command-fd 0 --edit-key ${GPGKEYID}
+
+    echo "batch" >> ~/.gnupg/gpg.conf
 }
 
 ### main  ###
