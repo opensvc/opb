@@ -25,7 +25,6 @@ ExecStop=/usr/bin/om daemon stop
 KillMode=process
 Restart=on-failure
 OOMScoreAdjust=-1000
-WatchdogSec=2s
 PIDFile=/var/lib/opensvc/osvcd.pid
 Delegate=yes
 Slice=opensvc.slice
