@@ -28,6 +28,7 @@ OOMScoreAdjust=-1000
 PIDFile=/var/lib/opensvc/osvcd.pid
 Delegate=yes
 Slice=opensvc.slice
+WatchdogSec=5s
 
 [Install]
 WantedBy=multi-user.target
