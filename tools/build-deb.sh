@@ -93,8 +93,8 @@ function gen_rules {
 }
 
 function gen_units {
-    cp $ROOTSCRIPTS/files/systemd.opensvc-agent.service $DEBIANFILESDIR/opensvc-server.opensvc-agent.service
-    cp $ROOTSCRIPTS/files/systemd.opensvc-agent.preset $DEBIANFILESDIR/80-opensvc-agent.preset
+    cp $ROOTSCRIPTS/files/systemd.opensvc-server.service $DEBIANFILESDIR/opensvc-server.opensvc-server.service
+    cp $ROOTSCRIPTS/files/systemd.opensvc-server.preset $DEBIANFILESDIR/80-opensvc-server.preset
     cp $ROOTSCRIPTS/files/systemd.opensvc-services.service $DEBIANFILESDIR/opensvc-server.opensvc-services.service
 }
 
@@ -114,7 +114,7 @@ function gen_install {
 #!/usr/bin/dh-exec
 bin/om => /usr/bin/om
 bin/compobj => /usr/lib/opensvc/compobj
-debian/80-opensvc-agent.preset /usr/lib/systemd/system-preset/
+debian/80-opensvc-server.preset /usr/lib/systemd/system-preset/
 EOF
 
     cat - <<-EOF >$DEBIANFILESDIR/opensvc-client.install

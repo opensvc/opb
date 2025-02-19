@@ -1,5 +1,5 @@
 [Unit]
-Description=OpenSVC agent
+Description=OpenSVC server
 Documentation=https://docs.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
 Before=opensvc-services.service
 After=network-online.target

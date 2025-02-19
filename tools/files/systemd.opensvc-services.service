@@ -1,7 +1,7 @@
 [Unit]
-Description=OpenSVC agent and services oneshot stopper
+Description=OpenSVC server and services oneshot stopper
 Documentation=https://docs.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
-After=opensvc-agent.service
+After=opensvc-server.service
 
 [Service]
 Type=oneshot

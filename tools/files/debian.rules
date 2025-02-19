@@ -21,7 +21,6 @@ override_dh_auto_build:
 #env | grep GO
 #	CGO_ENABLED=0 go build -v ./cmd/om ./cmd/ox ./util/compobj
 	@echo "==> make version"
-	env
 	echo $(TAG) > ./util/version/text/VERSION
 	@echo "==> make om"
 	make om
@@ -34,8 +33,8 @@ override_dh_auto_build:
 override_dh_auto_test:
 	@echo "TODO AUTO TEST"
 
-override_dh_strip:
-	@echo "DISABLE BINARY STRIPPING"
+#override_dh_strip:
+#	@echo "DISABLE BINARY STRIPPING"
 
 override_dh_install:
 	@echo "DH INSTALL"
@@ -66,19 +65,19 @@ override_dh_dwz:
 
 override_dh_builddeb:
 	@echo "DH BUILDDEB"
-        dh_builddeb -- -Zgzip
+	dh_builddeb -- -Zgzip
 
 override_dh_installinit:
 	@echo "DH INSTALLINIT"
 ifneq (,$(filter opensvc-client, ${build-pkgs}))
 	# TO FIX
-	dh_installinit --name=opensvc-agent opensvc.opensvc-agent.service
+	dh_installinit --name=opensvc-server opensvc.opensvc-server.service
 	dh_installinit --name=opensvc-services opensvc.opensvc-services.service
 endif
 	@echo "END DH INSTALLINIT"
 
 override_dh_installsystemd:
 	@echo "DH INSTALLSYSTEMD"
-	dh_installsystemd --no-package=opensvc-client --no-stop-on-upgrade --restart-after-upgrade --name=opensvc-agent opensvc-agent.service
+	dh_installsystemd --no-package=opensvc-client --no-stop-on-upgrade --restart-after-upgrade --name=opensvc-server opensvc-server.service
 	dh_installsystemd --no-package=opensvc-client --no-stop-on-upgrade --no-restart-after-upgrade --no-start --name=opensvc-services opensvc-services.service
 	@echo "END DH INSTALLSYSTEMD"
