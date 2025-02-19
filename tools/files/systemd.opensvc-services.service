@@ -7,6 +7,6 @@ After=opensvc-agent.service
 Type=oneshot
 TimeoutStopSec=1h
 RemainAfterExit=true
-ExecStart=/usr/bin/om node pushasset
+ExecStart=/usr/bin/om node version
 ExecStop=/usr/bin/om daemon shutdown
 
