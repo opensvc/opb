@@ -7,6 +7,6 @@ After=opensvc-server.service
 Type=oneshot
 TimeoutStopSec=1h
 RemainAfterExit=true
+User=root
 ExecStart=/usr/bin/om node version
 ExecStop=/usr/bin/om daemon shutdown
-
