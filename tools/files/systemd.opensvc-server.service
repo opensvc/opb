@@ -1,7 +1,6 @@
 [Unit]
 Description=OpenSVC server
 Documentation=https://docs.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
-Before=opensvc-services.service
 After=network-online.target
 After=time-sync.target
 After=multi-user.target
@@ -14,7 +13,6 @@ After=blk-availability.service
 Wants=libvirtd.service
 Wants=libvirt-guests.service
 Wants=blk-availability.service
-Requires=opensvc-services.service
 
 [Service]
 Type=forking

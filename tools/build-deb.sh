@@ -95,7 +95,6 @@ function gen_rules {
 function gen_units {
     cp $ROOTSCRIPTS/files/systemd.opensvc-server.service $DEBIANFILESDIR/opensvc-server.opensvc-server.service
     cp $ROOTSCRIPTS/files/systemd.opensvc-server.preset $DEBIANFILESDIR/80-opensvc-server.preset
-    cp $ROOTSCRIPTS/files/systemd.opensvc-services.service $DEBIANFILESDIR/opensvc-server.opensvc-services.service
 }
 
 function setup_debsig {
