@@ -96,55 +96,55 @@ function update_repo() {
 }
 
 function gen_pattern() {
-      # build a package version string (rpm and deb compliant)
-      # 3.0.1
-      # 3.0.1~1.gee27b62f
-      # 3.0.1~alpha3.0.ga3e2f4e2
-      # 3.0.1+feature.4.g12abc54e3
+    # build a package version string (rpm and deb compliant)
+    # 3.0.1
+    # 3.0.1~1.gee27b62f
+    # 3.0.1~alpha3.0.ga3e2f4e2
+    # 3.0.1+feature.4.g12abc54e3
 
-      # dpkg --compare-versions "3.0.1" "lt" "3.0.1+1.gee27b62f"           => TRUE
-      # rpmdev-vercmp 0 3.0.1 1.el9 0 3.0.1+1.gee27b62f 1.el9              => 0:3.0.1-1.el9 < 0:3.0.1+1.gee27b62f-1.el9
+    # dpkg --compare-versions "3.0.1" "lt" "3.0.1+1.gee27b62f"           => TRUE
+    # rpmdev-vercmp 0 3.0.1 1.el9 0 3.0.1+1.gee27b62f 1.el9              => 0:3.0.1-1.el9 < 0:3.0.1+1.gee27b62f-1.el9
 
-      # dpkg --compare-versions "3.0.1~alpha9.0.g06368969" "lt" "3.0.1"    => TRUE
-      # rpmdev-vercmp 0 3.0.1~alpha9.0.g06368969 1.el9 0 3.0.1 1.el9       => 0:3.0.1~alpha9.0.g06368969-1.el9 < 0:3.0.1-1.el9
+    # dpkg --compare-versions "3.0.1~alpha9.0.g06368969" "lt" "3.0.1"    => TRUE
+    # rpmdev-vercmp 0 3.0.1~alpha9.0.g06368969 1.el9 0 3.0.1 1.el9       => 0:3.0.1~alpha9.0.g06368969-1.el9 < 0:3.0.1-1.el9
 
-      # dpkg --compare-versions "3.0.1" "lt" "3.0.1+feature.4.g12abc54e3"  => TRUE
-      # rpmdev-vercmp 0 3.0.1 1.el9 0 3.0.1+feature.4.g12abc54e3 1.el9     => 0:3.0.1-1.el9 < 0:3.0.1+feature.4.g12abc54e3-1.el9
+    # dpkg --compare-versions "3.0.1" "lt" "3.0.1+feature.4.g12abc54e3"  => TRUE
+    # rpmdev-vercmp 0 3.0.1 1.el9 0 3.0.1+feature.4.g12abc54e3 1.el9     => 0:3.0.1-1.el9 < 0:3.0.1+feature.4.g12abc54e3-1.el9
 
-      local STR
-      if [ "$ISRELEASE" = true ] ; then
-	  # official public release
-          STR="$VERSION"
-      else
-	  # example: first commit after a public release v3.0.1 => 3.0.1+1.gee27b62f
-          STR="$VERSION+$GITDESC"
+    local STR
+    if [ "$ISRELEASE" = true ] ; then
+        # official public release
+        STR="$VERSION"
+    else
+        # example: first commit after a public release v3.0.1 => 3.0.1+1.gee27b62f
+        STR="$VERSION+$GITDESC"
 
-	  # if tag match alpha/beta/rc we add a ~ to mark package as a lower version than the official release
-          if $(echo $GITDESC | grep -Eq "^alpha|^beta|^rc"); then
-		  STR=${STR/\+/\~}
-	  fi
+        # if tag match alpha/beta/rc we add a ~ to mark package as a lower version than the official release
+        if $(echo $GITDESC | grep -Eq "^alpha|^beta|^rc"); then
+            STR=${STR/\+/\~}
+        fi
 
-          # if github pr, add pr id
-          if [ "$ISPULLREQUEST" = true ] ; then
-              STR="$STR+pr$PULLREQUESTID"
-	  fi
-      fi
+        # if github pr, add pr id
+        if [ "$ISPULLREQUEST" = true ] ; then
+            STR="$STR+pr$PULLREQUESTID"
+        fi
+    fi
 
-      grep -qi "ID=debian" /etc/os-release && {
-              . /etc/os-release
-              STR="$STR+deb$VERSION_ID"
-      }
-      grep -qi "ID=ubuntu" /etc/os-release && {
-              . /etc/os-release
-              STR="$STR+ubuntu$VERSION_ID"
-      }
+    grep -qi "ID=debian" /etc/os-release && {
+        . /etc/os-release
+        STR="$STR+deb$VERSION_ID"
+    }
+    grep -qi "ID=ubuntu" /etc/os-release && {
+        . /etc/os-release
+        STR="$STR+ubuntu$VERSION_ID"
+    }
 
-      echo $STR
+    echo $STR
 }
 
 function get_current_commit() {
-	CID=$(cd $OSVC && git log -1 --pretty=format:%H)
-	echo $CID
+        CID=$(cd $OSVC && git log -1 --pretty=format:%H)
+        echo $CID
 }
 
 function checkout_pull_request() {
@@ -209,10 +209,10 @@ function setup_gpg_repo() {
     for key in pub priv
     do
         [[ ! -f /tools/files/pkgsign_${key}.gpg ]] && {
-	    echo "gpg key /tools/files/pkgsign_${key}.gpg is missing. exiting"
-	    exit 1
-	}
-	gpg --import /tools/files/pkgsign_${key}.gpg
+            echo "gpg key /tools/files/pkgsign_${key}.gpg is missing. exiting"
+            exit 1
+        }
+        gpg --import /tools/files/pkgsign_${key}.gpg
     done
 
     gpg --list-keys
@@ -230,8 +230,8 @@ function setup_gpg_repo() {
 update_repo
 
 [[ -z ${OSVC_CODE_TO_BUILD} ]] && {
-	echo "variable OSVC_CODE_TO_BUILD is empty, defaulting to latest upstream commit id in main branch"
-	OSVC_CODE_TO_BUILD=$(get_current_commit)
+        echo "variable OSVC_CODE_TO_BUILD is empty, defaulting to latest upstream commit id in main branch"
+        OSVC_CODE_TO_BUILD=$(get_current_commit)
 }
 
 # aligning repo content on target code to package
