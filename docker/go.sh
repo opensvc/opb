@@ -16,7 +16,7 @@ echo "command: $0 $@"
 echo '------------------------------------'
 
 OSVC_GITREPO_URL="${OSVC_GITREPO_URL:-https://github.com/opensvc/om3.git}"
-OSVC_GOLANG_URL="${OSVC_GOLANG_URL:-https://go.dev/dl/go1.22.1.linux-amd64.tar.gz}"
+OSVC_GOLANG_URL="${OSVC_GOLANG_URL:-https://go.dev/dl/go1.23.4.linux-amd64.tar.gz}"
 REDHAT_ORG_ID="${REDHAT_ORG_ID:-1234567}"
 REDHAT_ACT_KEY="${REDHAT_ACT_KEY:-my_secret_activation_key}"
 
@@ -50,7 +50,7 @@ function cmds()
 {
     local D=$1
     local LABEL="$D:pkgbuild"
-    local COMMON_OPTS="--pull --network host"
+    local COMMON_OPTS="--pull --network host --no-cache"
     local BUILDARG_OPTS="--build-arg OSVC_GITREPO_URL=$OSVC_GITREPO_URL --build-arg OSVC_GOLANG_URL=$OSVC_GOLANG_URL"
     local REDHAT_OPTS="--build-arg RH_ORG_ID=$REDHAT_ORG_ID --build-arg RH_ACT_KEY=$REDHAT_ACT_KEY"
     local DOCKER_OPTS="$COMMON_OPTS $BUILDARG_OPTS"
@@ -101,7 +101,6 @@ function exit_abnormal()
   usage
   exit 1
 }
-
 
 OPTS=`getopt -o bc:dipq:r --long build,code:,delete,interactive,package,qa:,run -- "$@"`
 
