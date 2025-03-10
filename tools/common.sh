@@ -18,8 +18,8 @@ VERSION=""                # semver 3.1.2
 # 3.1.2~alpha12-ga2b1c34354
 VERSIONSTRING=""          # string returned by om node version 3.1.2 or 3.1.2~alpha12-ga2b1c34354
 
-# true if official public release: OSVC_RELEASE is defined with OSVC_PRERELEASE false, or git annotated tag
-# false if internal release: OSVC_RELEASE is unset and git lightweight tag
+# true if official public release: OSVC_RELEASE_NAME is defined with OSVC_PRERELEASE false, or git annotated tag
+# false if internal release: OSVC_RELEASE_NAME is unset and git lightweight tag
 ISRELEASE=""
 
 # true if github pull request, else false
@@ -34,6 +34,9 @@ GPGKEYID=""
 
 # source code git repository path
 OSVC="/opt/opensvc"
+
+OSVC_RELEASE_NAME=${OSVC_RELEASE_NAME:-}
+OSVC_PRERELEASE=${OSVC_PRERELEASE:-}
 
 # generic descriptions used in package manifest
 SUMMARYSRV="Cluster and configuration management agent"
@@ -112,7 +115,7 @@ function gen_pattern() {
     # rpmdev-vercmp 0 3.0.1 1.el9 0 3.0.1+feature.4.g12abc54e3 1.el9     => 0:3.0.1-1.el9 < 0:3.0.1+feature.4.g12abc54e3-1.el9
 
     local STR
-    if [ "$ISRELEASE" = true -a "$OSVC_RELEASE" = "v$VERSION" ] ; then
+    if [ "$ISRELEASE" = true -a "$OSVC_RELEASE_NAME" = "v$VERSION" ] ; then
         # official public release
         STR="$VERSION"
     else
@@ -240,20 +243,18 @@ checkout_code ${OSVC_CODE_TO_BUILD} || exit 1
 # updating commit id after code checkout
 CURRENT_COMMIT=$(get_current_commit)
 
-if [ "$OSVC_RELEASE" = true ] ; then
-    echo "OSVC_RELEASE true => PUBLIC RELEASE"
-    ISRELEASE=true
-    TAG=$(cd $OSVC && git describe --tags --exact-match --match "$OSVC_RELEASE" --long)
+if [ -n "$OSVC_RELEASE_NAME" ] ; then
+    TAG=$(cd $OSVC && git describe --tags --exact-match --match "$OSVC_RELEASE_NAME" --long)
     RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo "unexpected tag: $TAG from 'git describe --tags --exact-match --match "$OSVC_RELEASE" --long'"
+        echo "unexpected tag: $TAG from 'git describe --tags --exact-match --match "$OSVC_RELEASE_NAME" --long'"
         exit 1
     fi
     if [ "$OSVC_PRERELEASE" = "false" ]; then
-        echo "OSVC_RELEASE true => PUBLIC RELEASE"
+        echo "OSVC_RELEASE_NAME=$OSVC_RELEASE_NAME, OSVC_PRERELEASE=$OSVC_PRERELEASE => PUBLIC RELEASE"
         ISRELEASE=true
     else
-        echo "OSVC_RELEASE=true, OSVC_RELEASE=$OSVC_RELEASE => INTERNAL RELEASE"
+        echo "OSVC_RELEASE_NAME=$OSVC_RELEASE_NAME, OSVC_PRERELEASE=$OSVC_PRERELEASE => INTERNAL RELEASE"
         ISRELEASE=false
     fi
 else
@@ -292,7 +293,7 @@ GITDESC=${GITDESC//-/.}        # alpha9.0.g06368969 [error: line 6: Illegal char
 
 echo "##################################################"
 echo "#  OSVC_CODE_TO_BUILD : $OSVC_CODE_TO_BUILD"
-echo "#  OSVC_RELEASE       : $OSVC_RELEASE"
+echo "#  OSVC_RELEASE_NAME  : $OSVC_RELEASE_NAME"
 echo "#  OSVC_PRERELEASE    : $OSVC_PRERELEASE"
 echo "#  ISPULLREQUEST      : $ISPULLREQUEST"
 echo "#  ISRELEASE          : $ISRELEASE"

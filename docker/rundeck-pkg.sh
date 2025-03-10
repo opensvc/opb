@@ -24,7 +24,7 @@ echo
 	exit 1
 }
 
-docker run -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${NAME} -e OSVCREPO=$LREPO -e OSVCRELEASE=${RELEASE} -e OSVC_PRERELEASE=${OSVC_PRERELEASE} -v ${OPBROOT}/tools:/tools --rm $NAME:pkgbuild build || {
+docker run -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${NAME} -e OSVCREPO=$LREPO -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools --rm $NAME:pkgbuild build || {
     echo "$0: error while trying to build package"
     exit 1
 }
