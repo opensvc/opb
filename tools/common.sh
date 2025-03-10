@@ -90,6 +90,10 @@ function is_commit() {
     echo "$1" | grep -qE '^[a-z0-9]{40}$' > /dev/null && return 0 || return 1
 }
 
+function is_version_tag() {
+    echo "$1" | grep -qE '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?(?:\+([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?$' > /dev/null && return 0 || return 1
+}
+
 function update_repo() {
     title "UPDATING GIT REPO"
     sudo git config --global --add safe.directory ${OSVC} >> /dev/null 2>&1
@@ -198,11 +202,19 @@ function checkout_commit() {
     fi
 }
 
+function checkout_version_tag() {
+    is_version_tag $1 || return 1
+    echo "git reset --hard $1"
+    (cd ${OSVC} && git reset --hard ${1})
+}
+
 function checkout_code() {
     if is_pull_request $1 ; then
         checkout_pull_request $1 || return 1
     elif is_commit $1 ;then
         checkout_commit $1 || return 1
+    elif is_version_tag $1; then
+        checkout_version_tag $1 || return 1
     else
         checkout_branch $1 || return 1
     fi
