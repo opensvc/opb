@@ -18,8 +18,8 @@ VERSION=""                # semver 3.1.2
 # 3.1.2~alpha12-ga2b1c34354
 VERSIONSTRING=""          # string returned by om node version 3.1.2 or 3.1.2~alpha12-ga2b1c34354
 
-# true if official public release (git annotated tag)
-# false if internal release (git lightweight tag)
+# true if official public release: OSVC_RELEASE is defined with OSVC_PRERELEASE false, or git annotated tag
+# false if internal release: OSVC_RELEASE is unset and git lightweight tag
 ISRELEASE=""
 
 # true if github pull request, else false
@@ -112,7 +112,7 @@ function gen_pattern() {
     # rpmdev-vercmp 0 3.0.1 1.el9 0 3.0.1+feature.4.g12abc54e3 1.el9     => 0:3.0.1-1.el9 < 0:3.0.1+feature.4.g12abc54e3-1.el9
 
     local STR
-    if [ "$ISRELEASE" = true ] ; then
+    if [ "$ISRELEASE" = true -a "$OSVC_RELEASE" = "v$VERSION" ] ; then
         # official public release
         STR="$VERSION"
     else
@@ -240,29 +240,47 @@ checkout_code ${OSVC_CODE_TO_BUILD} || exit 1
 # updating commit id after code checkout
 CURRENT_COMMIT=$(get_current_commit)
 
-# git tagging documentation
-# https://git-scm.com/book/en/v2/Git-Basics-Tagging
-# annotated tag is used for public official releases
-# lightweight tag is used for any other internal usage
-
-# checking if public or internal release
-TAG=$(cd $OSVC && git describe --exact-match HEAD 2>/dev/null)
-RET=$?
-# RET=0 if annotated tag
-# RET!=0 if lightweight tag
-
-if test ${RET} -eq 0
-then
-    # public release
-    # git annotated tag  [git tag -a v3.1.0 -m "my version 3.1.0"]
-    echo "ANNOTATED TAG => PUBLIC RELEASE"
+if [ "$OSVC_RELEASE" = true ] ; then
+    echo "OSVC_RELEASE true => PUBLIC RELEASE"
     ISRELEASE=true
+    TAG=$(cd $OSVC && git describe --tags --exact-match --match "$OSVC_RELEASE" --long)
+    RET=$?
+    if [ "$RET" -ne 0 ]; then
+        echo "unexpected tag: $TAG from 'git describe --tags --exact-match --match "$OSVC_RELEASE" --long'"
+        exit 1
+    fi
+    if [ "$OSVC_PRERELEASE" = "false" ]; then
+        echo "OSVC_RELEASE true => PUBLIC RELEASE"
+        ISRELEASE=true
+    else
+        echo "OSVC_RELEASE=true, OSVC_RELEASE=$OSVC_RELEASE => INTERNAL RELEASE"
+        ISRELEASE=false
+    fi
 else
-    # internal release
-    # git lightweight tag [git tag v3.1.0-alpha12]
-    echo "LIGHTWEIGHT TAG => INTERNAL RELEASE"
-    ISRELEASE=false
-    TAG=$(cd $OSVC && git describe --tags --match 'v*' --long)
+    # git tagging documentation
+    # https://git-scm.com/book/en/v2/Git-Basics-Tagging
+    # annotated tag is used for public official releases
+    # lightweight tag is used for any other internal usage
+
+    # checking if public or internal release
+    TAG=$(cd $OSVC && git describe --exact-match HEAD 2>/dev/null)
+    RET=$?
+    # RET=0 if annotated tag
+    # RET!=0 if lightweight tag
+
+    if test ${RET} -eq 0
+    then
+        # public release
+        # git annotated tag  [git tag -a v3.1.0 -m "my version 3.1.0"]
+        echo "ANNOTATED TAG => PUBLIC RELEASE"
+        ISRELEASE=true
+    else
+        # internal release
+        # git lightweight tag [git tag v3.1.0-alpha12]
+        echo "LIGHTWEIGHT TAG => INTERNAL RELEASE"
+        ISRELEASE=false
+        TAG=$(cd $OSVC && git describe --tags --match 'v*' --long)
+    fi
 fi
 
 # TAG can be v3.4.5 or v3.4.5-alpha9-0-g06368969
@@ -274,6 +292,8 @@ GITDESC=${GITDESC//-/.}        # alpha9.0.g06368969 [error: line 6: Illegal char
 
 echo "##################################################"
 echo "#  OSVC_CODE_TO_BUILD : $OSVC_CODE_TO_BUILD"
+echo "#  OSVC_RELEASE       : $OSVC_RELEASE"
+echo "#  OSVC_PRERELEASE    : $OSVC_PRERELEASE"
 echo "#  ISPULLREQUEST      : $ISPULLREQUEST"
 echo "#  ISRELEASE          : $ISRELEASE"
 echo "#  ARCH               : $ARCH"
