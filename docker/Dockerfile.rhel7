@@ -34,7 +34,7 @@ RUN subscription-manager register --org $RH_ORG_ID --activationkey $RH_ACT_KEY -
     subscription-manager repos --enable rhel-7-server-optional-rpms && \
     subscription-manager repos --enable rhel-7-server-extras-rpms
 
-RUN yum -y install gcc rpm-build rpm-sign rpmlint sudo make && \
+RUN yum -y install gcc rpm-build rpm-sign rpmlint sudo make bash-completion && \
     yum -y install https://packages.endpointdev.com/rhel/7/os/x86_64/endpoint-repo.x86_64.rpm && \
     yum -y install git && \
     yum clean all
