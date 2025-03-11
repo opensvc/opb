@@ -166,6 +166,7 @@ mkdir -p %{buildroot}%{_datadir}/opensvc/html
 %{_datadir}/opensvc
 %{_libdir}/opensvc
 %attr(0755, root, root) %{_bindir}/%{osvc_server_binary_name}
+%attr(0755, root, root) %{_libdir}/opensvc/%{osvc_compobj_binary_name}
 %{_unitdir}/opensvc-server.service
 %{_presetdir}/80-opensvc-server.preset
 
