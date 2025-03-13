@@ -35,10 +35,7 @@ function prepare_rpmbuildtop {
 
 function gen_spec {
 local LRELEASE="$PATTERN"
-local LSOURCE0="opensvc-${VERSION}"
-if [ "${ISRELEASE}" = false ] ; then
-    LSOURCE0="opensvc-${PATTERN}"
-fi
+local LSOURCE0="opensvc-${PATTERN}"
 
 cat - <<-EOF >$SPECFILE
 Summary: $SUMMARYSRV
