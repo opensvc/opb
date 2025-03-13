@@ -91,7 +91,7 @@ function is_commit() {
 }
 
 function is_version_tag() {
-    echo "$1" | grep -qE '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?(?:\+([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?$' > /dev/null && return 0 || return 1
+    echo "$1" | grep -qP '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?(?:\+([\da-zA-Z-]+(?:\.[\da-zA-Z-]+)*))?$' > /dev/null && return 0 || return 1
 }
 
 function update_repo() {
