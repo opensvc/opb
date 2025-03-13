@@ -13,7 +13,11 @@ cd ${OPBDOCKER} || exit 1
 }
 
 LREPO=${REPOS[$NAME]}
+if [ -n "${RELEASE_NAME:-}" ] ; then
+    [ "${PRERELEASE:-}" = true ] && LREPO=uat${LREPO#dev} || LREPO=prod${LREPO#dev}
+fi
 
+echo "$0 starting..."
 echo "NAME=$NAME"
 echo "CODE=$CODE"
 echo "LREPO=$LREPO"
