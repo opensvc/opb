@@ -5,3 +5,5 @@ tools/tmp/*
 tools/files/pkgsign_priv.gpg
 tools/files/pkgsign_pub.gpg
 .idea/*
+scripts/restic.exclude.file
+scripts/restic.bash
