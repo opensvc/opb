@@ -10,6 +10,7 @@ After=libvirtd.service
 After=virt-guest-shutdown.target
 After=libvirt-guests.service
 After=blk-availability.service
+After=drbd-graceful-shutdown.service
 Wants=libvirtd.service
 Wants=libvirt-guests.service
 Wants=blk-availability.service
