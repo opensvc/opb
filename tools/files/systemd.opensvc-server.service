@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenSVC server
-Documentation=https://docs.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
+Documentation=https://book.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
 After=network-online.target
 After=time-sync.target
 After=multi-user.target
