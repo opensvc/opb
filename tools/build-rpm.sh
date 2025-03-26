@@ -50,7 +50,8 @@ Source0: ${LSOURCE0}.tar.gz
 %{?el9:Requires: systemd-rpm-macros}
 License: ASL 2.0
 AutoReqProv: no
-Conflicts: opensvc <= 2.1
+Conflicts: opensvc <= 2.2
+Obsoletes: opensvc
 %define _source_filedigest_algorithm 1
 %define _binary_filedigest_algorithm 1
 %define _source_payload w9.gzdio
