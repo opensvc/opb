@@ -95,7 +95,6 @@ function gen_rules {
 
 function gen_units {
     cp $ROOTSCRIPTS/files/systemd.opensvc-server.service $DEBIANFILESDIR/opensvc-server.opensvc-server.service
-    cp $ROOTSCRIPTS/files/systemd.opensvc-server.preset $DEBIANFILESDIR/80-opensvc-server.preset
 }
 
 function setup_debsig {
@@ -114,7 +113,6 @@ function gen_install {
 #!/usr/bin/dh-exec
 bin/om => /usr/bin/om
 bin/compobj => /usr/lib/opensvc/compobj
-debian/80-opensvc-server.preset /usr/lib/systemd/system-preset/
 EOF
 
     cat - <<-EOF >$DEBIANFILESDIR/opensvc-client.install

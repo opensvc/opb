@@ -71,11 +71,11 @@ override_dh_installinit:
 	@echo "DH INSTALLINIT"
 ifneq (,$(filter opensvc-client, ${build-pkgs}))
 	# TO FIX
-	dh_installinit --name=opensvc-server opensvc.opensvc-server.service
+	dh_installinit --no-enable --no-start --no-stop-on-upgrade --restart-after-upgrade --name=opensvc-server opensvc.opensvc-server.service
 endif
 	@echo "END DH INSTALLINIT"
 
 override_dh_installsystemd:
 	@echo "DH INSTALLSYSTEMD"
-	dh_installsystemd --no-package=opensvc-client --no-stop-on-upgrade --restart-after-upgrade --name=opensvc-server opensvc-server.service
+	dh_installsystemd --no-package=opensvc-client --no-enable --no-start --no-stop-on-upgrade --restart-after-upgrade --name=opensvc-server opensvc-server.service
 	@echo "END DH INSTALLSYSTEMD"
