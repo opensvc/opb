@@ -16,10 +16,11 @@ Wants=libvirt-guests.service
 Wants=blk-availability.service
 
 [Service]
-Type=forking
+Type=notify
+NotifyAccess=main
 TimeoutStopSec=5m
 User=root
-ExecStart=/usr/bin/om daemon start
+ExecStart=/usr/bin/om daemon run --quiet
 ExecStop=/usr/bin/om daemon stop
 KillMode=process
 Restart=on-failure
