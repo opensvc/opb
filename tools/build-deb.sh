@@ -54,8 +54,9 @@ Architecture: any
 Depends: \${misc:Depends},
          \${shlibs:Depends}
 Built-Using: \${misc:Built-Using}
-Recommends: sg3-utils, bash-completion
+Recommends: sg3-utils, bash-completion, opensvc-client
 Provides: opensvc
+Breaks: opensvc (<= 2.2)
 Replaces: opensvc (<= 2.2)
 Conflicts: opensvc (<= 2.2)
 Description: $SUMMARYSRV

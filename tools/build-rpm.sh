@@ -70,6 +70,8 @@ $(echo ${DESCRIPTIONSRV}|fold -s)
 %package server
 Summary: $SUMMARYSRV
 Provides: /usr/bin/%{osvc_server_binary_name}
+%{?el8:Recommends: sg3-utils, bash-completion, opensvc-client}
+%{?el9:Recommends: sg3-utils, bash-completion, opensvc-client}
 %description server
 $DESCRIPTIONSRV
 
