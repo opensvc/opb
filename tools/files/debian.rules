@@ -33,8 +33,8 @@ override_dh_auto_build:
 override_dh_auto_test:
 	@echo "TODO AUTO TEST"
 
-#override_dh_strip:
-#	@echo "DISABLE BINARY STRIPPING"
+override_dh_strip:
+	dh_strip --no-ddebs
 
 override_dh_install:
 	@echo "DH INSTALL"
