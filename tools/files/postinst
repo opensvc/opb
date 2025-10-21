@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+export LC_ALL=C
+#set -x
+exec > /postinst.log 2>&1
+
+case "$1" in
+    configure)
+        if dpkg -s opensvc 2>/dev/null | grep ^Status | grep -q "deinstall ok config-files"; then
+            echo "postinst: migration from opensvc to opensvc-server"
+        fi
+        if [ -f /var/lib/opensvc/migration.from.opensvc.v2 ]; then
+            echo "postinst: migration from opensvc confirmed (witness file)"
+            rm -f /var/lib/opensvc/migration.from.opensvc.v2
+	    om daemon start
+        fi
+        ;;
+    *)
+        echo "postinst: script argument : $1"
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

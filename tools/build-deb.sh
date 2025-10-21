@@ -135,6 +135,12 @@ EOF
 
 }
 
+function gen_scripts {
+    cp $ROOTSCRIPTS/files/preinst $DEBIANFILESDIR/preinst
+    cp $ROOTSCRIPTS/files/postinst $DEBIANFILESDIR/postinst
+    chmod 755 $DEBIANFILESDIR/preinst $DEBIANFILESDIR/postinst
+}
+
 function gen_source_format {
     mkdir -p $DEBIANFILESDIR/source
     cat - <<-EOF >$DEBIANFILESDIR/source/format
@@ -169,10 +175,12 @@ function expose_data {
         DEBSHA256=$(sha256sum $DEBBUILDTOP/$DEB | awk '{print $1}')
         echo "DEBSHA256=$DEBSHA256" >> $ARTIFACT
 
+        echo "PATTERN=$PATTERN" >> $ARTIFACT
+
         echo
 	title $prefix
         cat $ARTIFACT
-        check_data $ARTIFACT REPO DEB DEBSHA256 || return 1
+        check_data $ARTIFACT REPO DEB DEBSHA256 PATTERN || return 1
     done
     # copy all files
     ( cd $DEBBUILDTOP && cp $(ls --file-type | grep -v '.*/$') $DATAROOT )
@@ -233,6 +241,9 @@ gen_install || exit 1
 
 title "Preparing dirs file"
 gen_dirs || exit 1
+
+title "Preparing scripts file"
+gen_scripts || exit 1
 
 title "Building deb package"
 build_deb || exit 1

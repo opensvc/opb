@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+export LC_ALL=C
+#set -x
+exec > /preinst.log 2>&1
+
+case "$1" in
+    install)
+        if dpkg-query -s opensvc 2>/dev/null | grep ^Status | grep -q "deinstall ok config-files"; then
+            echo "preinst: migration from opensvc to opensvc-server"
+	    echo "preinst: freezing node"
+            touch /var/lib/opensvc/node/frozen
+	    [[ -f /etc/bash_completion.d/opensvc.sh ]] && rm -f /etc/bash_completion.d/opensvc.sh
+	    touch /var/lib/opensvc/migration.from.opensvc.v2
+	    ls -la /var/lib/opensvc/
+        fi
+        ;;
+    upgrade)
+        echo "preinst: updating opensvc-server"
+        ;;
+    *)
+        echo "preinst: script argument : $1"
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
