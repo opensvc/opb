@@ -1,0 +1,57 @@
+FROM alpine:3.22 AS builder
+
+ARG OSVC_GITREPO_URL
+ARG OSVC_GOLANG_URL
+
+RUN apk add --no-cache curl git tar
+
+WORKDIR /opt
+
+RUN git clone $OSVC_GITREPO_URL opensvc
+
+RUN curl --silent --output go.tar.gz -L $OSVC_GOLANG_URL && \
+    tar xzf go.tar.gz && \
+    rm -f go.tar.gz && \
+    mkdir /opt/gopath
+
+RUN cd /opt/opensvc && GOPATH=/opt/gopath /opt/go/bin/go get ./cmd/om ./cmd/ox ./util/compobj
+
+FROM debian:trixie
+
+COPY --from=builder /opt/opensvc /opt/opensvc
+
+COPY --from=builder /opt/go /opt/go
+
+COPY --from=builder /opt/gopath /opt/gopath
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends -y \
+    bash-completion \
+    build-essential \
+    debhelper \
+    debsig-verify \
+    debsigs \
+    devscripts \
+    dh-exec \
+    dh-golang \
+    gcc \
+    git \
+    golang-any \
+    less \
+    lsb-release \
+    lintian \
+    sudo \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN /bin/echo -e "export PATH=/opt/go/bin:$PATH\nexport GOPATH=/opt/gopath" >> /etc/profile.d/golang.sh
+
+RUN useradd --uid 2020 --create-home --shell /bin/bash builder && chown -Rh builder:builder /home/builder
+
+RUN echo "builder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+COPY ./docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["build"]
+
+LABEL org.opencontainers.image.title="OpenSVC Package Builder"
+LABEL org.opencontainers.image.authors="OpenSVC <support@opensvc.com>"
