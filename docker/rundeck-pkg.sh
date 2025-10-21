@@ -29,7 +29,7 @@ echo
 }
 
 TIMESTAMP=$(date --utc +%Y%m%d%H%M%S)
-echo "${TIMESTAMP} OSVC_CODE_TO_BUILD=${CODE} OSVCDIST=${NAME} OSVCREPO=$LREPO OSVC_RELEASE_NAME=${RELEASE_NAME} OSVC_PRERELEASE=${PRERELEASE}" >> $0.log
+echo "${TIMESTAMP} docker run -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${NAME} -e OSVCREPO=$LREPO -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools --rm $NAME:pkgbuild build" >> $0.log
 
 docker run -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${NAME} -e OSVCREPO=$LREPO -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools --rm $NAME:pkgbuild build || {
     echo "$0: error while trying to build package"
