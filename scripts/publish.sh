@@ -36,7 +36,9 @@ function publish_rpm()
 	      [[ $PKGARCH != 'source' ]] && {
                   cat $manifest
 	          scp -q $RPM repoadm:/data/rpm/$LREPO/$PKGARCH/
-		  ssh -q repoadm "createrepo_c --update /data/rpm/$LREPO/$PKGARCH"
+		  OPTS=""
+		  [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
+		  ssh -q repoadm "createrepo_c $OPTS --update /data/rpm/$LREPO/$PKGARCH"
 		  ssh -q repoadm "gpg --yes -a --detach-sign --default-key \$GNUPGKEYID /data/rpm/$LREPO/$PKGARCH/repodata/repomd.xml"
 	      }
             )
