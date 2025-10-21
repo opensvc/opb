@@ -16,7 +16,7 @@ echo "command: $0 $@"
 echo '------------------------------------'
 
 OSVC_GITREPO_URL="${OSVC_GITREPO_URL:-https://github.com/opensvc/om3.git}"
-OSVC_GOLANG_URL="${OSVC_GOLANG_URL:-https://go.dev/dl/go1.23.7.linux-amd64.tar.gz}"
+OSVC_GOLANG_URL="${OSVC_GOLANG_URL:-https://go.dev/dl/go1.25.3.linux-amd64.tar.gz}"
 REDHAT_ORG_ID="${REDHAT_ORG_ID:-1234567}"
 REDHAT_ACT_KEY="${REDHAT_ACT_KEY:-my_secret_activation_key}"
 
