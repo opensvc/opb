@@ -4,7 +4,7 @@ opbscripts="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 opbroot="${opbscripts}/.."
 
 . ${opbroot}/environment.sh
-
+set -x
 QANAME=$1
 
 [[ -z ${QANAME} ]] && {
@@ -31,12 +31,14 @@ if [ -n "${RELEASE_NAME:-}" ] ; then
     exit 0
 fi
 
-case $1 in
-rhel7|rhel8|rhel9|sles15)
+case $QANAME in
+rhel7|rhel8|rhel9|rhel10|sles15)
         echo "Cleanup repo $QANAME - $LREPO"
 	for arch in $(ssh -q repoadm "cd /data/rpm/$LREPO && ls -1")
 	do
-            ssh -q repoadm "rm -rf /data/rpm/$LREPO/$arch/* && createrepo_c /data/rpm/$LREPO/$arch"	
+	    OPTS=""
+	    [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
+            ssh -q repoadm "rm -rf /data/rpm/$LREPO/$arch/* && createrepo_c $OPTS /data/rpm/$LREPO/$arch"
 	done
         ;;
 u2004|u2204|u2404)
@@ -47,7 +49,6 @@ u2004|u2204|u2404)
         ;;
 debian*)
         echo "Cleanup repo $QANAME - $LREPO"
-	set -x
 	PKG=$(ssh -q repoadm "reprepro -b /data/apt/debian list $LREPO | awk -v ORS=' ' '{print \$2}'")
 	[[ ! -z $PKG ]] && ssh -q repoadm "for p in $PKG; do reprepro -b /data/apt/debian remove $LREPO \$p || /bin/false; done;"
 	exit 0
