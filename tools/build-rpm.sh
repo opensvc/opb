@@ -228,10 +228,12 @@ function expose_data {
     SRPMSHA256=$(sha256sum $DATAROOT/$SRPM | awk '{print $1}')
     echo "SRPMSHA256=$SRPMSHA256" >> $ARTIFACT
 
+    echo "PATTERN=$PATTERN" >> $ARTIFACT
+
     echo
     cat $ARTIFACT
     echo
-    check_data $ARTIFACT REPO SRPM SRPMSHA256 || return 1
+    check_data $ARTIFACT REPO SRPM SRPMSHA256 PATTERN || return 1
 
     # binary rpm files
     for prefix in opensvc-client opensvc-server
@@ -248,6 +250,8 @@ function expose_data {
     
         RPMSHA256=$(sha256sum $DATAROOT/$RPM | awk '{print $1}')
         echo "RPMSHA256=$RPMSHA256" >> $ARTIFACT
+
+        echo "PATTERN=$PATTERN" >> $ARTIFACT
     
         echo
         ls -l $DATAROOT
