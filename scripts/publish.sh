@@ -8,6 +8,8 @@ pkgroot="${opbroot}/tools/out"
 
 QANAME=$1
 
+echo "$0 starting..."
+
 [[ -z ${QANAME} ]] && {
     echo "Please give target distribution as argument"
     exit 1
@@ -35,6 +37,10 @@ function publish_rpm()
 	    ( . $manifest;
 	      [[ $PKGARCH != 'source' ]] && {
                   cat $manifest
+	          ssh -q repoadm "/usr/bin/test -f /data/rpm/$LREPO/$PKGARCH/$RPM && exit 0 || exit 1" && {
+		      echo "file $RPM already present in $LREPO. skipping publication"
+		      exit 0
+		  }
 	          scp -q $RPM repoadm:/data/rpm/$LREPO/$PKGARCH/
 		  OPTS=""
 		  [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
@@ -56,6 +62,10 @@ function publish_apt()
         do
             cat $manifest
         done
+	ssh -q repoadm "( find /data/apt/$flavor/pool -type f -name $DEB 2>/dev/null | grep -q . ) && exit 0 || exit 1" && {
+	      echo "file $DEB already present in $LREPO. skipping publication"
+	      exit 0
+        }
         scp -q * repoadm:/data/apt/$flavor/incoming/in_$LREPO/
         ssh -q repoadm "ls -l /data/apt/$flavor/incoming/in_$LREPO/ ; reprepro -b /data/apt/$flavor processincoming in_$LREPO" || exit 1
 	ssh -q repoadm "ls -1 /data/apt/$flavor/incoming/in_$LREPO && rm -f /data/apt/$flavor/incoming/in_$LREPO/*"
@@ -65,7 +75,7 @@ function publish_apt()
 }
 
 case $1 in
-rhel7|rhel8|rhel9|sles15)
+rhel7|rhel8|rhel9|rhel10|sles15)
         publish_rpm
         ;;
 u2004|u2204|u2404)
