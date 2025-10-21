@@ -1,0 +1,33 @@
+[Unit]
+Description=OpenSVC server
+Documentation=https://book.opensvc.com/ file:/usr/share/doc/opensvc/ man:om(1)
+After=network-online.target
+After=time-sync.target
+After=multi-user.target
+After=network.target
+After=docker.service
+After=libvirtd.service
+After=virt-guest-shutdown.target
+After=libvirt-guests.service
+After=blk-availability.service
+After=drbd-graceful-shutdown.service
+Wants=libvirtd.service
+Wants=libvirt-guests.service
+Wants=blk-availability.service
+
+[Service]
+Type=forking
+TimeoutStopSec=5m
+User=root
+ExecStart=/usr/bin/om daemon start
+ExecStop=/usr/bin/om daemon stop
+KillMode=process
+Restart=on-failure
+OOMScoreAdjust=-1000
+PIDFile=/var/lib/opensvc/osvcd.pid
+Delegate=yes
+Slice=opensvc.slice
+WatchdogSec=5s
+
+[Install]
+WantedBy=multi-user.target
