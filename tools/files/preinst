@@ -10,7 +10,7 @@ case "$1" in
             echo "preinst: migration from opensvc to opensvc-server"
 	    echo "preinst: freezing node"
             touch /var/lib/opensvc/node/frozen
-	    [[ -f /etc/bash_completion.d/opensvc.sh ]] && rm -f /etc/bash_completion.d/opensvc.sh
+	    test -f /etc/bash_completion.d/opensvc.sh && rm -f /etc/bash_completion.d/opensvc.sh
 	    touch /var/lib/opensvc/migration.from.opensvc.v2
 	    ls -la /var/lib/opensvc/
         fi
