@@ -2,7 +2,7 @@
 set -e
 export LC_ALL=C
 #set -x
-exec > /preinst.log 2>&1
+exec > /var/log/opensvc.v3.preinst.log 2>&1
 
 case "$1" in
     install)

@@ -2,7 +2,7 @@
 set -e
 export LC_ALL=C
 #set -x
-exec > /postinst.log 2>&1
+exec > /var/log/opensvc.v3.postinst.log 2>&1
 
 case "$1" in
     configure)
@@ -12,6 +12,7 @@ case "$1" in
         if [ -f /var/lib/opensvc/migration.from.opensvc.v2 ]; then
             echo "postinst: migration from opensvc confirmed (witness file)"
             rm -f /var/lib/opensvc/migration.from.opensvc.v2
+	    systemctl enable opensvc-server
 	    om daemon start
         fi
         ;;
