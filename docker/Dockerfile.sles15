@@ -2,6 +2,7 @@ FROM alpine:3.17 AS builder
 
 ARG OSVC_GITREPO_URL
 ARG OSVC_GOLANG_URL
+ARG OSVC_CYCLONEDX_VERSION
 
 RUN apk add --no-cache curl git tar go
 
@@ -14,6 +15,11 @@ RUN curl --silent --output go.tar.gz -L $OSVC_GOLANG_URL && \
     rm -f go.tar.gz && \
     mkdir /opt/gopath
 
+RUN curl -sSfL https://github.com/CycloneDX/cyclonedx-cli/releases/download/$OSVC_CYCLONEDX_VERSION/cyclonedx-linux-x64 -o /opt/cyclonedx && \
+    chmod 755 /opt/cyclonedx
+
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /opt/syft
+
 RUN cd /opt/opensvc && GOPATH=/opt/gopath /opt/go/bin/go get ./cmd/om ./cmd/ox ./util/compobj
 
 FROM registry.suse.com/suse/sle15
@@ -23,6 +29,10 @@ COPY --from=builder /opt/opensvc /opt/opensvc
 COPY --from=builder /opt/go /opt/go
 
 COPY --from=builder /opt/gopath /opt/gopath
+
+COPY --from=builder /opt/cyclonedx /usr/bin/cyclonedx
+
+COPY --from=builder /opt/syft/syft /usr/bin/syft
 
 RUN zypper --gpg-auto-import-keys refresh && \
     zypper --gpg-auto-import-keys -n --non-interactive install gcc git rpm-build rpmlint sudo && \
