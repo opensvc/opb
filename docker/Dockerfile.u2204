@@ -1,6 +1,7 @@
 FROM alpine:3.17 AS builder
 
 ARG OSVC_GITREPO_URL
+ARG WEBAPP_GITREPO_URL
 ARG OSVC_GOLANG_URL
 ARG OSVC_CYCLONEDX_VERSION
 
@@ -9,6 +10,8 @@ RUN apk add --no-cache curl git tar go
 WORKDIR /opt
 
 RUN git clone $OSVC_GITREPO_URL opensvc
+
+RUN git clone $WEBAPP_GITREPO_URL om3-webapp
 
 RUN curl --silent --output go.tar.gz -L $OSVC_GOLANG_URL && \
     tar xzf go.tar.gz && \
@@ -25,6 +28,8 @@ RUN cd /opt/opensvc && GOPATH=/opt/gopath /opt/go/bin/go get ./cmd/om ./cmd/ox .
 FROM ubuntu:22.04
 
 COPY --from=builder /opt/opensvc /opt/opensvc
+
+COPY --from=builder /opt/om3-webapp /opt/om3-webapp
 
 COPY --from=builder /opt/go /opt/go
 

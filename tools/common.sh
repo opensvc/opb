@@ -34,6 +34,9 @@ GPGKEYID=""
 
 # source code git repository path
 OSVC="/opt/opensvc"
+if [ "$OSVCWEBAPP" = true ] ; then
+    OSVC="/opt/om3-webapp"
+fi
 
 OSVC_RELEASE_NAME=${OSVC_RELEASE_NAME:-}
 OSVC_PRERELEASE=${OSVC_PRERELEASE:-}
