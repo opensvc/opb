@@ -7,8 +7,6 @@ OPBROOT="${OPBDOCKER}/.."
 
 cd ${OPBDOCKER} || exit 1
 
-. ${OPBDOCKER}/credentials.txt
-
 . ${OPBROOT}/environment.sh
 
 echo '------------------------------------'
@@ -53,7 +51,7 @@ function cmds()
     local LABEL="$D:pkgbuild-new"
     local COMMON_OPTS="--pull --network host --no-cache"
     local BUILDARG_OPTS="--build-arg OSVC_GITREPO_URL=$OSVC_GITREPO_URL --build-arg OSVC_GOLANG_URL=$OSVC_GOLANG_URL --build-arg OSVC_CYCLONEDX_VERSION=$OSVC_CYCLONEDX_VERSION"
-    local REDHAT_OPTS="--build-arg RH_ORG_ID=$REDHAT_ORG_ID --build-arg RH_ACT_KEY=$REDHAT_ACT_KEY"
+    local REDHAT_OPTS="--secret id=rh_org_id,src=$OPBDOCKER/rh_org_id.txt --secret id=rh_act_key,src=$OPBDOCKER/rh_act_key.txt"
     local DOCKER_OPTS="$COMMON_OPTS $BUILDARG_OPTS"
     local LREPO=${REPOS[$D]}
     local GITCONFIG=""

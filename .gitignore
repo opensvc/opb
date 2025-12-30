@@ -1,5 +1,7 @@
 credentials.txt
 docker/credentials.txt
+docker/rh_act_key.txt
+docker/rh_org_id.txt
 tools/out/*
 tools/tmp/*
 tools/files/pkgsign_priv.gpg

@@ -27,9 +27,6 @@ RUN cd /opt/opensvc && GOPATH=/opt/gopath /opt/go/bin/go get ./cmd/om ./cmd/ox .
 
 FROM registry.access.redhat.com/ubi7
 
-ARG RH_ORG_ID
-ARG RH_ACT_KEY
-
 COPY --from=builder /opt/opensvc /opt/opensvc
 
 COPY --from=builder /opt/om3-webapp /opt/om3-webapp
@@ -45,7 +42,11 @@ COPY --from=builder /opt/syft/syft /usr/bin/syft
 # required for subscription-manager to work in container
 RUN sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
 
-RUN subscription-manager register --org $RH_ORG_ID --activationkey $RH_ACT_KEY --force --name rhel7-pkgbuilder && \
+RUN --mount=type=secret,id=rh_org_id \
+    --mount=type=secret,id=rh_act_key \
+    RH_ORG_ID=$(cat /run/secrets/rh_org_id) && \
+    RH_ACT_KEY=$(cat /run/secrets/rh_act_key) && \
+    subscription-manager register --org "$RH_ORG_ID" --activationkey "$RH_ACT_KEY" --force --name rhel7-pkgbuilder && \
     subscription-manager repos --enable rhel-7-server-optional-rpms && \
     subscription-manager repos --enable rhel-7-server-extras-rpms
 
