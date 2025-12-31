@@ -25,7 +25,7 @@ RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | 
 
 RUN cd /opt/opensvc && GOPATH=/opt/gopath /opt/go/bin/go get ./cmd/om ./cmd/ox ./util/compobj
 
-FROM registry.suse.com/suse/sle16
+FROM registry.suse.com/bci/bci-base:16.0
 
 COPY --from=builder /opt/opensvc /opt/opensvc
 
@@ -40,7 +40,7 @@ COPY --from=builder /opt/cyclonedx /usr/bin/cyclonedx
 COPY --from=builder /opt/syft/syft /usr/bin/syft
 
 RUN zypper --gpg-auto-import-keys refresh && \
-    zypper --gpg-auto-import-keys -n --non-interactive install gcc git rpm-build rpmlint sudo && \
+    zypper --gpg-auto-import-keys -n --non-interactive install gcc git rpm-build sudo && \
     zypper clean
 
 RUN echo -e "export PATH=/opt/go/bin:$PATH\nexport GOPATH=/opt/gopath" >> /etc/profile.d/golang.sh
