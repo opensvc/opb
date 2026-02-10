@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+#
+set -a
+set -x 
 opbscripts="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 opbroot="${opbscripts}/.."
 pkgroot="${opbroot}/tools/out"
@@ -58,17 +61,41 @@ function publish_apt()
 {
     local flavor=$1
     cd $pkgroot/$QANAME && {
+	# for logging purposes
         for manifest in $(ls -1 *.$QANAME)
         do
-            cat $manifest
+            cat $manifest ; . $manifest
         done
-	ssh -q repoadm "( find /data/apt/$flavor/pool -type f -name $DEB 2>/dev/null | grep -q . ) && exit 0 || exit 1" && {
-	      echo "file $DEB already present in $LREPO. skipping publication"
-	      exit 0
-        }
-        scp -q * repoadm:/data/apt/$flavor/incoming/in_$LREPO/
-        ssh -q repoadm "ls -l /data/apt/$flavor/incoming/in_$LREPO/ ; reprepro -b /data/apt/$flavor processincoming in_$LREPO" || exit 1
-	ssh -q repoadm "ls -1 /data/apt/$flavor/incoming/in_$LREPO && rm -f /data/apt/$flavor/incoming/in_$LREPO/*"
+	ssh -q repoadm "find /data/apt/$flavor/pool -type f" > /tmp/pool.$flavor.list
+	cat /tmp/pool.$flavor.list | grep "$PATTERN" > /tmp/pool.$flavor.list.filtered
+	if [ -s /tmp/pool.$flavor.list.filtered ]; then
+	    # found some entries in the pool
+	    # need to present found entries into repo
+	    echo "Found files matching pattern $PATTERN in /data/apt/$flavor/pool"
+	    cat /tmp/pool.$flavor.list.filtered
+	    echo
+	    for file in $(cat /tmp/pool.$flavor.list.filtered | grep -E '.deb$|.dsc$')
+	    do
+                action="${file##*.}"
+		echo "Adding $file to $LREPO"
+		echo "reprepro -b /data/apt/$flavor include$action $LREPO $file"
+		ssh -q repoadm "reprepro -b /data/apt/$flavor include$action $LREPO $file"
+	    done
+	else
+	    # pattern is not present in pool
+	    # need to upload files to repo
+	    scp -q * repoadm:/data/apt/$flavor/incoming/in_$LREPO/
+	    ssh -q repoadm "ls -l /data/apt/$flavor/incoming/in_$LREPO/ ; reprepro -b /data/apt/$flavor processincoming in_$LREPO" || exit 1
+	    ssh -q repoadm "ls -1 /data/apt/$flavor/incoming/in_$LREPO && rm -f /data/apt/$flavor/incoming/in_$LREPO/*"
+	fi
+
+	#ssh -q repoadm "( find /data/apt/$flavor/pool -type f -name $DEB 2>/dev/null | grep -q . ) && exit 0 || exit 1" && {
+	#      echo "file $DEB already present in $LREPO. skipping publication"
+	#      exit 0
+        #}
+        #scp -q * repoadm:/data/apt/$flavor/incoming/in_$LREPO/
+        #ssh -q repoadm "ls -l /data/apt/$flavor/incoming/in_$LREPO/ ; reprepro -b /data/apt/$flavor processincoming in_$LREPO" || exit 1
+	#ssh -q repoadm "ls -1 /data/apt/$flavor/incoming/in_$LREPO && rm -f /data/apt/$flavor/incoming/in_$LREPO/*"
         exit 0
     }
     exit 1
