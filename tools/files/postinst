@@ -12,8 +12,12 @@ case "$1" in
         if [ -f /var/lib/opensvc/migration.from.opensvc.v2 ]; then
             echo "postinst: migration from opensvc confirmed (witness file)"
             rm -f /var/lib/opensvc/migration.from.opensvc.v2
-	    systemctl enable opensvc-server
-	    om daemon start
+	    systemctl enable --now opensvc-server
+        fi
+	mkdir -p /usr/share/opensvc/bin
+        if [ ! -f /usr/share/opensvc/bin/om ] || [ -L /usr/share/opensvc/bin/om ]; then
+            echo "Creating compatibility symlink /usr/share/opensvc/bin/om -> /usr/bin/om"
+            ln -sf /usr/bin/om /usr/share/opensvc/bin/om
         fi
         ;;
     *)

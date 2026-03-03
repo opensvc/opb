@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    echo "Removing compatibility symlink /usr/share/opensvc/bin/om"
+    rm -f /usr/share/opensvc/bin/om || :
+    rmdir /usr/share/opensvc/bin 2>/dev/null || :
+    rmdir /usr/share/opensvc 2>/dev/null || :
+fi
+
+#DEBHELPER#

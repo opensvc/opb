@@ -137,7 +137,8 @@ EOF
 function gen_scripts {
     cp $ROOTSCRIPTS/files/preinst $DEBIANFILESDIR/preinst
     cp $ROOTSCRIPTS/files/postinst $DEBIANFILESDIR/postinst
-    chmod 755 $DEBIANFILESDIR/preinst $DEBIANFILESDIR/postinst
+    cp $ROOTSCRIPTS/files/postrm $DEBIANFILESDIR/postrm
+    chmod 755 $DEBIANFILESDIR/preinst $DEBIANFILESDIR/postinst $DEBIANFILESDIR/postrm
 }
 
 function gen_source_format {

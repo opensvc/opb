@@ -3,13 +3,13 @@
 [[ -z "$OSVCDIST" ]] && exit 1
 
 echo
-cd ${ROOTSCRIPTS}/tmp/debbuild/${OSVCDIST}
+cd ${DEBBUILDTOP}
 
 for pkg in $(ls -1rt *.deb)
 do
     echo "--- dpkg-deb -I $pkg ---"
-    dpkg-deb -I ${ROOTSCRIPTS}/tmp/debbuild/${OSVCDIST}/${pkg} || {
-	echo "problem with deb package ${ROOTSCRIPTS}/tmp/debbuild/${OSVCDIST}/${pkg}"
+    dpkg-deb -I ${DEBBUILDTOP}/${pkg} || {
+	echo "problem with deb package ${DEBBUILDTOP}/${pkg}"
 	exit 1
     }
     echo -e "\n--- linting $pkg ---"
