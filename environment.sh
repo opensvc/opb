@@ -1,4 +1,4 @@
-DISTROS=("rhel7" "rhel8" "rhel9" "rhel10" "sles15" "sles16" "u2004" "u2204" "u2404" "debian12" "debian13")
+DISTROS=("rhel7" "rhel8" "rhel9" "rhel10" "sles15" "sles16" "u2004" "u2204" "u2404" "u2604" "debian12" "debian13")
 # does not work for sles12
 # sles12 container image requires running on a sles12 registered system
 # to act as a proxy to the rpm repositories
@@ -13,6 +13,14 @@ declare -A REPOS=( [rhel7]=dev-opensvc-v3-rhel7
 	           [u2004]=dev-opensvc-v3-focal
 	           [u2204]=dev-opensvc-v3-jammy
 	           [u2404]=dev-opensvc-v3-noble
+	           [u2604]=dev-opensvc-v3-resolute
 	           [debian13]=dev-opensvc-v3-trixie
 	           [debian12]=dev-opensvc-v3-bookworm
 	         )
+
+
+function get_published_snapshot
+{
+	local repo=$1
+	ssh -q repoadmv2 "aptly publish list -json | jq -r '.[] | select(.Distribution == \"$repo\") | .Sources[0].Name'"
+}
