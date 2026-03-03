@@ -48,10 +48,8 @@ Source0: ${LSOURCE0}.tar.gz
 %{?el7:Requires: systemd}
 %{?el8:Requires: systemd-rpm-macros}
 %{?el9:Requires: systemd-rpm-macros}
+%{?el10:Requires: systemd-rpm-macros}
 License: ASL 2.0
-AutoReqProv: no
-Conflicts: opensvc <= 2.2
-Obsoletes: opensvc
 %define _source_filedigest_algorithm 1
 %define _binary_filedigest_algorithm 1
 %define _source_payload w9.gzdio
@@ -59,10 +57,9 @@ Obsoletes: opensvc
 %define osvc_server_binary_name om
 %define osvc_client_binary_name ox
 %define osvc_compobj_binary_name compobj
+%define debug_package %{nil}
+%define _enable_debug_packages 0
 %global completions_dir %( pkg-config --variable=completionsdir bash-completion )
-
-# disable binary stripping
-# %global debug_package %{nil}
 
 %description
 $(echo ${DESCRIPTIONSRV}|fold -s)
@@ -70,8 +67,11 @@ $(echo ${DESCRIPTIONSRV}|fold -s)
 %package server
 Summary: $SUMMARYSRV
 Provides: /usr/bin/%{osvc_server_binary_name}
+Provides: opensvc
+Obsoletes: opensvc < 2.2
 %{?el8:Recommends: sg3-utils, bash-completion, opensvc-client}
 %{?el9:Recommends: sg3-utils, bash-completion, opensvc-client}
+%{?el10:Recommends: sg3-utils, bash-completion, opensvc-client}
 %description server
 $DESCRIPTIONSRV
 
@@ -142,9 +142,16 @@ mkdir -p %{buildroot}%{_datadir}/doc/opensvc
 # /usr/share/opensvc/html
 mkdir -p %{buildroot}%{_datadir}/opensvc/html
 
-
 %pre
 
+%pre server
+# check if v2 is running
+if [ \$1 -eq 1 ]; then
+    if systemctl is-active opensvc-agent.service >/dev/null 2>&1; then
+        echo "opensvc v2 is active. add witness flag."
+        touch /run/opensvc_v2_was_running
+    fi
+fi
 
 %post server
 %systemd_post opensvc-server.service
@@ -154,6 +161,45 @@ mkdir -p %{buildroot}%{_datadir}/opensvc/html
 
 %postun server
 %systemd_postun_with_restart opensvc-server.service
+
+if [ \$1 -eq 0 ]; then
+    # complete package uninstall
+    if [ -L /usr/share/opensvc/bin/om ]; then
+        echo "Removing compatibility symlink /usr/share/opensvc/bin/om"
+        rm -f /usr/share/opensvc/bin/om || :
+    fi
+    rmdir /usr/share/opensvc/bin >/dev/null 2>&1 || :
+    rmdir /usr/share/opensvc >/dev/null 2>&1 || :
+fi
+
+%posttrans server
+if [ -f /run/opensvc_v2_was_running ]; then
+    echo "OpenSVC v2 to v3 migration ongoing..."
+
+    systemctl daemon-reload >/dev/null 2>&1 || :
+    systemctl enable --now opensvc-server.service >/dev/null 2>&1 || :
+
+    if [ -d /usr/share/opensvc/opensvc ]; then
+        echo "Cleaning up legacy /usr/share/opensvc/opensvc"
+        rm -rf /usr/share/opensvc/opensvc /usr/share/opensvc/bin/init || :
+    fi
+
+    # create symlink /usr/share/opensvc/bin/om -> /usr/bin/om
+    # avoids error "-bash: /usr/share/opensvc/bin/om: No such file or directory" just after upgrade
+    mkdir -p /usr/share/opensvc/bin
+    ln -sf %{_bindir}/om /usr/share/opensvc/bin/om
+
+    rm -f /run/opensvc_v2_was_running || :
+fi
+
+# remove legacy om bash function
+if [ -f /etc/profile.d/opensvc.sh ]; then
+    grep -q '/usr/share/opensvc/bin/om' /etc/profile.d/opensvc.sh && {
+        echo "Deleting legacy v2 /etc/profile.d/opensvc.sh"
+        rm -f /etc/profile.d/opensvc.sh || :
+    } || :
+fi
+
 
 %files server
 %defattr(0644,root,root,0755)
@@ -178,8 +224,6 @@ $CHANGELOG
 
 EOF
 }
-
-## %define _rpmfilename $RPMFNAME
 
 function build_rpm {
     #rpmbuild --debug --define "osvc_chrootpkg $CHROOTPKG" --define "_topdir $ROOTSCRIPTS/tmp/rpmbuild/${OSVCDIST}" --clean -ba $SPECFILE
