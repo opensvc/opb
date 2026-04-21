@@ -31,26 +31,60 @@ if [ -n "${RELEASE_NAME:-}" ] ; then
     exit 0
 fi
 
+
+function cleanup_aptly_repo
+{
+	local repo=$1
+	local flavor=$2
+	psnap=$(get_published_snapshot $repo)
+	if [ -n "$psnap" ]; then
+            echo $psnap | grep -q '^empty' || {
+            echo "Removing published $psnap from $LREPO apt/$flavor"
+	    ssh -q repoadmv2 "aptly publish drop $LREPO apt/$flavor && aptly publish snapshot -architectures="amd64" -distribution="$LREPO" empty-$LREPO apt/$flavor"
+            }
+	fi
+	# remove snapshots except empty one
+	for snap in $(ssh -q repoadmv2 "aptly snapshot list -raw" | grep "$repo" | grep -v empty)
+	do
+	    echo "Removing snap $snap"
+	    ssh -q repoadmv2 "aptly snapshot drop $snap"
+	done
+	# remove packages from repo
+	for pkg in $(ssh -q repoadmv2 "aptly repo show -with-packages $repo" | awk '/Packages:/,/^$/ {if ($0 ~ /^[[:space:]]+[^[:space:]]/ && !/^$/ && !/Packages:/) print $1}')
+	do
+		echo "Removing package $pkg from $repo"
+		ssh -q repoadmv2 "aptly repo remove $repo $pkg"
+	done
+}
+
 case $QANAME in
 rhel7|rhel8|rhel9|rhel10|sles15)
         echo "Cleanup repo $QANAME - $LREPO"
-	for arch in $(ssh -q repoadm "cd /data/rpm/$LREPO && ls -1")
-	do
-	    OPTS=""
-	    [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
-            ssh -q repoadm "rm -rf /data/rpm/$LREPO/$arch/* && createrepo_c $OPTS /data/rpm/$LREPO/$arch"
-	done
+#	for arch in $(ssh -q repoadm "cd /data/rpm/$LREPO && ls -1")
+#	do
+#	    OPTS=""
+#	    [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
+#            ssh -q repoadm "rm -rf /data/rpm/$LREPO/$arch/* && createrepo_c $OPTS /data/rpm/$LREPO/$arch"
+#	done
+        for arch in $(ssh -q repoadmv2 "cd /data/rpm/$LREPO && ls -1")
+        do
+            OPTS=""
+            [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
+            ssh -q repoadmv2 "rm -rf /data/rpm/$LREPO/$arch/* && createrepo_c $OPTS /data/rpm/$LREPO/$arch"
+        done
         ;;
-u2004|u2204|u2404)
+u2004|u2204|u2404|u2604)
         echo "Cleanup repo $QANAME - $LREPO"
-	PKG=$(ssh -q repoadm "reprepro -b /data/apt/ubuntu list $LREPO | awk -v ORS=' ' '{print \$2}'")
-	[[ ! -z $PKG ]] && ssh -q repoadm "for p in $PKG; do reprepro -b /data/apt/ubuntu remove $LREPO \$p || /bin/false; done;"
+#	PKG=$(ssh -q repoadm "reprepro -b /data/apt/ubuntu list $LREPO | awk -v ORS=' ' '{print \$2}'")
+#	[[ ! -z $PKG ]] && ssh -q repoadm "for p in $PKG; do reprepro -b /data/apt/ubuntu remove $LREPO \$p || /bin/false; done;"
+	cleanup_aptly_repo $LREPO ubuntu
 	exit 0
         ;;
 debian*)
         echo "Cleanup repo $QANAME - $LREPO"
-	PKG=$(ssh -q repoadm "reprepro -b /data/apt/debian list $LREPO | awk -v ORS=' ' '{print \$2}'")
-	[[ ! -z $PKG ]] && ssh -q repoadm "for p in $PKG; do reprepro -b /data/apt/debian remove $LREPO \$p || /bin/false; done;"
+#	PKG=$(ssh -q repoadm "reprepro -b /data/apt/debian list $LREPO | awk -v ORS=' ' '{print \$2}'")
+#	[[ ! -z $PKG ]] && ssh -q repoadm "for p in $PKG; do reprepro -b /data/apt/debian remove $LREPO \$p || /bin/false; done;"
+	cleanup_aptly_repo $LREPO debian
 	exit 0
         ;;
 *)
