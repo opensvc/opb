@@ -96,7 +96,7 @@ make compobj
 strip --strip-all bin/*
 
 %check
-./bin/%{osvc_server_binary_name} node version > binary.commit
+./bin/%{osvc_server_binary_name} node --version > binary.commit
 grep -qw ${TAG} binary.commit && echo "PASS: om binary version OK" || (echo "FAIL: om binary version did not match current commit ($TAG)" && exit 1)
 
 %install

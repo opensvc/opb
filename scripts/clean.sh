@@ -7,6 +7,8 @@ opbroot="${opbscripts}/.."
 set -x
 QANAME=$1
 
+env
+
 [[ -z ${QANAME} ]] && {
     echo "Please give target distribution as argument"
     exit 1
@@ -55,10 +57,12 @@ function cleanup_aptly_repo
 		echo "Removing package $pkg from $repo"
 		ssh -q repoadmv2 "aptly repo remove $repo $pkg"
 	done
+	echo "Cleaning aptly database and pool filesystem"
+	ssh -q repoadmv2 "aptly db cleanup"
 }
 
 case $QANAME in
-rhel7|rhel8|rhel9|rhel10|sles15)
+rhel7|rhel8|rhel9|rhel10|sles15|sles16)
         echo "Cleanup repo $QANAME - $LREPO"
 #	for arch in $(ssh -q repoadm "cd /data/rpm/$LREPO && ls -1")
 #	do

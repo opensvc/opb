@@ -6,13 +6,19 @@ OPBROOT="${OPBDOCKER}/.."
 cd ${OPBDOCKER} || exit 1
 
 . ${OPBROOT}/environment.sh
-
+set -x
 [[ -z $NAME ]] && {
 	echo "$0: variable NAME is not defined"
 	exit 1
 }
 
 LREPO=${REPOS[$NAME]}
+if [ -n "${TARGETREPOENV:-}" ] ; then
+	echo "variable TARGETREPOENV is set to ${TARGETREPOENV}"
+	LREPO=$(echo $LREPO|sed -e "s@dev-@${TARGETREPOENV}-@")
+	echo "variable LREPO now points to ${LREPO}"
+fi
+
 if [ -n "${RELEASE_NAME:-}" ] ; then
     [ "${PRERELEASE:-}" = true ] && LREPO=uat${LREPO#dev} || LREPO=prod${LREPO#dev}
 fi

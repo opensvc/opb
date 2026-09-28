@@ -19,6 +19,12 @@ echo "$0 starting..."
 }
 
 LREPO=${REPOS[$QANAME]}
+if [ -n "${TARGETREPOENV:-}" ] ; then
+        echo "variable TARGETREPOENV is set to ${TARGETREPOENV}"
+        LREPO=$(echo $LREPO|sed -e "s@dev-@${TARGETREPOENV}-@")
+        echo "variable LREPO now points to ${LREPO}"
+fi
+
 if [ -n "${RELEASE_NAME:-}" ] ; then
     [ "${PRERELEASE:-}" = true ] && LREPO=uat${LREPO#dev} || LREPO=prod${LREPO#dev}
 fi
@@ -194,11 +200,11 @@ function publish_apt_v2()
 
 
 case $1 in
-rhel7|rhel8|rhel9|rhel10|sles15)
+rhel7|rhel8|rhel9|rhel10|sles15|sles16)
 #        publish_rpm
         publish_rpm_v2
         ;;
-u2004|u2204|u2404|2604)
+u2004|u2204|u2404|u2604)
 #	publish_apt ubuntu
 	publish_apt_v2 ubuntu
         ;;

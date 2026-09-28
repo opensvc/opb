@@ -14,8 +14,9 @@ echo "command: $0 $@"
 echo '------------------------------------'
 
 OSVC_GITREPO_URL="${OSVC_GITREPO_URL:-https://github.com/opensvc/om3.git}"
-OSVC_GOLANG_URL="${OSVC_GOLANG_URL:-https://go.dev/dl/go1.25.4.linux-amd64.tar.gz}"
-OSVC_CYCLONEDX_VERSION="${OSVC_CYCLONEDX_VERSION:-v0.29.1}"
+WEBAPP_GITREPO_URL="${WEBAPP_GITREPO_URL:-https://github.com/opensvc/om3-webapp.git}"
+OSVC_GOLANG_URL="${OSVC_GOLANG_URL:-https://go.dev/dl/go1.26.4.linux-amd64.tar.gz}"
+OSVC_CYCLONEDX_VERSION="${OSVC_CYCLONEDX_VERSION:-v0.30.0}"
 REDHAT_ORG_ID="${REDHAT_ORG_ID:-1234567}"
 REDHAT_ACT_KEY="${REDHAT_ACT_KEY:-my_secret_activation_key}"
 
@@ -24,6 +25,8 @@ DELIMG=""
 INTERACTIVE=""
 PACKAGE=""
 ECHO="echo"
+OSVCWEBAPP="false"
+DCKBUILD="build"
 OSVC_CODE_TO_BUILD=""
 OSVC_DISTRO=""
 
@@ -48,26 +51,27 @@ function isdistro()
 function cmds()
 {
     local D=$1
-    local LABEL="$D:pkgbuild-new"
-    local COMMON_OPTS="--pull --network host --no-cache"
-    local BUILDARG_OPTS="--build-arg OSVC_GITREPO_URL=$OSVC_GITREPO_URL --build-arg OSVC_GOLANG_URL=$OSVC_GOLANG_URL --build-arg OSVC_CYCLONEDX_VERSION=$OSVC_CYCLONEDX_VERSION"
+    local LABEL="$D:pkgbuild"
+    local LABELBUILD="$D:pkgbuild-new"
+    local COMMON_OPTS="--pull --network host --no-cache "
+    local BUILDARG_OPTS="--build-arg OSVC_GITREPO_URL=$OSVC_GITREPO_URL --build-arg WEBAPP_GITREPO_URL=$WEBAPP_GITREPO_URL --build-arg OSVC_GOLANG_URL=$OSVC_GOLANG_URL --build-arg OSVC_CYCLONEDX_VERSION=$OSVC_CYCLONEDX_VERSION"
     local REDHAT_OPTS="--secret id=rh_org_id,src=$OPBDOCKER/rh_org_id.txt --secret id=rh_act_key,src=$OPBDOCKER/rh_act_key.txt"
     local DOCKER_OPTS="$COMMON_OPTS $BUILDARG_OPTS"
     local LREPO=${REPOS[$D]}
     local GITCONFIG=""
     echo $D | grep -q rhel && DOCKER_OPTS="$DOCKER_OPTS $REDHAT_OPTS"
     [[ $BUILDIMG = true ]] && {
-	    $ECHO docker buildx build $DOCKER_OPTS -f Dockerfile.$D -t $LABEL . || return 1
+	    $ECHO docker buildx build $DOCKER_OPTS -f Dockerfile.$D -t $LABELBUILD . || return 1
     }
     [[ $DELIMG = true ]] && {
 	    $ECHO docker rmi -f $LABEL || return 1
     }
     [[ $PACKAGE = true ]] && {
-	    $ECHO docker run -e OSVC_CODE_TO_BUILD=${OSVC_CODE_TO_BUILD} -e OSVCDIST=${D} -e OSVCREPO=$LREPO -v ${OPBROOT}/tools:/tools --rm $LABEL build || return 1
+	    $ECHO docker run -e OSVC_CODE_TO_BUILD=${OSVC_CODE_TO_BUILD} -e OSVCDIST=${D} -e OSVCREPO=$LREPO -e OSVCWEBAPP=${OSVCWEBAPP} -v ${OPBROOT}/tools:/tools -v ~builder/.cache:/cache --rm $LABEL $DCKBUILD || return 1
     }
     [[ -f $HOME/.gitconfig ]] && GITCONFIG="-v $HOME/.gitconfig:/root/.gitconfig"
     [[ -f $HOME/.bashrc ]] && BASHRC="-v $HOME/.bashrc:/root/.bashrc"
-    [[ $INTERACTIVE = true ]] && $ECHO docker run --hostname build-${D} -e OSVC_CODE_TO_BUILD=${OSVC_CODE_TO_BUILD} -e OSVCDIST=${D} -e OSVCREPO=$LREPO ${GITCONFIG} ${BASHRC} -v ${OPBROOT}/tools:/tools --rm -it $LABEL /bin/bash
+    [[ $INTERACTIVE = true ]] && $ECHO docker run --hostname build-${D} -e OSVC_CODE_TO_BUILD=${OSVC_CODE_TO_BUILD} -e OSVCDIST=${D} -e OSVCREPO=$LREPO -e OSVCWEBAPP=${OSVCWEBAPP} ${GITCONFIG} ${BASHRC} -v ${OPBROOT}/tools:/tools -v ${HOME}/.cache:/cache --rm -it $LABEL /bin/bash
     return 0
 }
 
@@ -82,6 +86,7 @@ function usage()
   echo "[ -p | --package     ] asks for package build"
   echo "[ -q | --qa          ] set the targeted qa/distro environment"
   echo "[ -r | --run         ] actually execute the commands (default only echo commands to stdout)"
+  echo "[ -w | --webapp      ] enable webapp packaging environment"
   echo
   echo "Supported distros: ${DISTROS[@]}"
   echo
@@ -90,6 +95,7 @@ function usage()
   echo "$0 -i -q debian12    # display interactive command to spawn a debian12 build env"
   echo "$0 -p -q debian12    # display command to build a debian12 package"
   echo "$0 -r -p -q debian12    # run command to build a debian12 package"
+  echo "$0 -w -r -p -q debian12    # run command to build a debian12 webapp package"
   echo "$0 -c pull/123 -r -p -q debian12    # run command to build a debian12 package corresponding to github pr pull/123"
   echo "$0 -c edcb0dbb792aff13bc5efc856623560e247ef10a -r -p -q debian12    # run command to build a debian12 package corresponding to github commit edcb..."
   echo 
@@ -101,7 +107,7 @@ function exit_abnormal()
   exit 1
 }
 
-OPTS=`getopt -o bc:dipq:r --long build,code:,delete,interactive,package,qa:,run -- "$@"`
+OPTS=`getopt -o bc:dipq:rw --long build,code:,delete,interactive,package,qa:,run,webapp -- "$@"`
 
 if [ $? != 0 ] ; then echo "Terminating..." >&2; exit_abnormal; fi
 
@@ -135,6 +141,11 @@ while true; do
       ;;
     -r | --run)
       ECHO="";
+      shift
+      ;;
+    -w | --webapp)
+      OSVCWEBAPP="true";
+      DCKBUILD="om3-webapp-build";
       shift
       ;;
     -- ) shift; break ;;

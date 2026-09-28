@@ -44,9 +44,11 @@ OSVC_PRERELEASE=${OSVC_PRERELEASE:-}
 # generic descriptions used in package manifest
 SUMMARYSRV="Cluster and configuration management agent"
 SUMMARYCLI="Cluster remote management client"
+SUMMARYWEBAPP="Cluster Webapp remote management client"
 DESCRIPTIONSRV="A cluster agent to deploy, start, stop, monitor and relocate applications \
 described as services."
 DESCRIPTIONCLI="A client to remotely manage OpenSVC clusters"
+DESCRIPTIONWEBAPP="A web application to remotely manage OpenSVC clusters"
 
 # machine architecture
 ARCH=$(arch)
