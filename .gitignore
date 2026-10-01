@@ -10,3 +10,6 @@ tools/files/pkgsign_pub.gpg
 scripts/restic.exclude.file
 scripts/restic.bash
 .aptly.lock
+tools/webapp-out/*
+tools/webapp-tmp/*
+tools/tmp-webapp/*
