@@ -17,6 +17,12 @@ echo "---------------"
 }
 
 LREPO=${REPOS[$NAME]}
+if [ -n "${TARGETREPOENV:-}" ] ; then
+	echo "variable TARGETREPOENV is set to ${TARGETREPOENV}"
+	LREPO=$(echo $LREPO|sed -e "s@dev-@${TARGETREPOENV}-@")
+	echo "variable LREPO now points to ${LREPO}"
+fi
+
 if [ -n "${RELEASE_NAME:-}" ] ; then
     [ "${PRERELEASE:-}" = true ] && LREPO=uat${LREPO#dev} || LREPO=prod${LREPO#dev}
 fi
@@ -29,6 +35,16 @@ echo
 
 [[ -z $LREPO ]] && {
 	echo "$0: package repository LREPO is not defined"
+	exit 1
+}
+
+# the webapp package embeds the index.html asset of an om3-webapp github release
+[[ -z $CODE ]] && {
+	echo "$0: variable CODE must be an om3-webapp release tag"
+	exit 1
+}
+${OPBROOT}/tools/fetch_release.sh opensvc om3-webapp "${CODE}" index.html || {
+	echo "$0: unable to fetch om3-webapp release ${CODE} index.html"
 	exit 1
 }
 

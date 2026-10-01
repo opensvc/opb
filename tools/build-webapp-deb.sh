@@ -17,6 +17,11 @@ function changelog {
 }
 
 function prepare_debbuildtop {
+    local INDEX="/cache/github-releases/opensvc/om3-webapp/${OSVC_CODE_TO_BUILD}/index.html"
+    [[ -f $INDEX ]] || {
+        echo "missing $INDEX, run tools/fetch_release.sh opensvc om3-webapp ${OSVC_CODE_TO_BUILD} index.html"
+        return 1
+    }
     local PATTERN=$(gen_pattern)
     echo "PATTERN <$PATTERN>"
     [[ -d $DEBBUILDTOP ]] && sudo rm -rf $DEBBUILDTOP
@@ -26,7 +31,7 @@ function prepare_debbuildtop {
     mkdir -p /run/tmp
     cd /run/tmp && {
         mkdir opensvc-webapp-${PATTERN}
-        cp /cache/github-releases/opensvc/om3-webapp/${OSVC_CODE_TO_BUILD}/index.html ./opensvc-webapp-${PATTERN}/
+        cp $INDEX ./opensvc-webapp-${PATTERN}/ || return 1
 	tar czvf opensvc-webapp-${PATTERN}.tar.gz opensvc-webapp-${PATTERN}
 	mv opensvc-webapp-${PATTERN}.tar.gz $DEBBUILDTOP/opensvc-webapp_${PATTERN}.orig.tar.gz
 	cd -
@@ -122,7 +127,7 @@ function expose_data {
         DEBF=$(ls -1 $DEBBUILDTOP/$prefix*.deb)
         DEB=$(basename $DEBF)
         echo "DEB=$DEB" >> $ARTIFACT
-        echo "PKGARCH=$ARCH" >> $ARTIFACT
+        echo "PKGARCH=all" >> $ARTIFACT
 
         DEBSHA256=$(sha256sum $DEBBUILDTOP/$DEB | awk '{print $1}')
         echo "DEBSHA256=$DEBSHA256" >> $ARTIFACT

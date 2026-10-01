@@ -8,7 +8,7 @@ if [ "$1" = 'build' ]; then
     }
     exit 1
 elif [ "$1" = "om3-webapp-build" ]; then
-    test -x /tools/run.sh && {
+    test -x /tools/run-webapp.sh && {
         echo "=> Building om3-webapp package"
         cd /tools && ./run-webapp.sh && exit 0
     }

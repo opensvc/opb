@@ -6,6 +6,9 @@ set -x
 opbscripts="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 opbroot="${opbscripts}/.."
 pkgroot="${opbroot}/tools/out"
+if [ "${OSVCWEBAPP:-false}" = true ] ; then
+    pkgroot="${opbroot}/tools/webapp-out"
+fi
 
 . ${opbroot}/environment.sh
 
@@ -78,6 +81,8 @@ function publish_rpm_v2()
             ( . $manifest;
               [[ $PKGARCH != 'source' ]] && {
                   cat $manifest
+                  # noarch packages are served from the arch repositories
+                  [[ $PKGARCH == 'noarch' ]] && PKGARCH=x86_64
                   ssh -q repoadmv2 "/usr/bin/test -f /data/rpm/$LREPO/$PKGARCH/$RPM && exit 0 || exit 1" && {
                       echo "file $RPM already present in $LREPO. skipping publication"
                       exit 0

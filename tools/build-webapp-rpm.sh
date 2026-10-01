@@ -2,7 +2,7 @@
 
 set -a
 
-RPMBUILDTOP="$ROOTSCRIPTS/tmp-webapp/rpmbuild/${OSVCDIST}"
+RPMBUILDTOP="$ROOTSCRIPTS/webapp-tmp/rpmbuild/${OSVCDIST}"
 SPECFILE="$RPMBUILDTOP/SPECS/opensvc-webapp.spec"
 CHANGELOG=$(changelog)
 
@@ -22,6 +22,11 @@ EOF
 }
 
 function prepare_rpmbuildtop {
+    local INDEX="/cache/github-releases/opensvc/om3-webapp/${OSVC_CODE_TO_BUILD}/index.html"
+    [[ -f $INDEX ]] || {
+        echo "missing $INDEX, run tools/fetch_release.sh opensvc om3-webapp ${OSVC_CODE_TO_BUILD} index.html"
+        return 1
+    }
     SOURCES="$RPMBUILDTOP/SOURCES"
     for DIR in BUILD RPMS SOURCES SPECS SRPMS
     do
@@ -31,7 +36,7 @@ function prepare_rpmbuildtop {
     mkdir -p /run/tmp
     cd /run/tmp && {
         mkdir opensvc-webapp-${PATTERN}
-        cp /cache/github-releases/opensvc/om3-webapp/${OSVC_CODE_TO_BUILD}/index.html ./opensvc-webapp-${PATTERN}/
+        cp $INDEX ./opensvc-webapp-${PATTERN}/ || return 1
 	tar czvf opensvc-webapp-${PATTERN}.tar.gz opensvc-webapp-${PATTERN}
 	mv opensvc-webapp-${PATTERN}.tar.gz $SOURCES/
 	find $RPMBUILDTOP
@@ -88,7 +93,7 @@ EOF
 ## %define _rpmfilename $RPMFNAME
 
 function build_rpm {
-    rpmbuild -vvv --debug --define "_topdir $ROOTSCRIPTS/tmp-webapp/rpmbuild/${OSVCDIST}" --clean -ba $SPECFILE
+    rpmbuild -vvv --debug --define "_topdir $RPMBUILDTOP" --clean -ba $SPECFILE
     ret=$?
 echo
     echo "rpmbuild ret code <$ret>"
@@ -116,13 +121,13 @@ function check_gpg_sign()
 }
 
 function expose_data {
-    DATAROOT="$ROOTSCRIPTS/out/$OSVCDIST"
+    DATAROOT="$ROOTSCRIPTS/webapp-out/$OSVCDIST"
 
     test -d $DATAROOT && rm -rf $DATAROOT
     mkdir -p $DATAROOT
 
     # source rpm file
-    ARTIFACT="$DATAROOT/opensvc.$CURRENT_COMMIT.$OSVCDIST"
+    ARTIFACT="$DATAROOT/opensvc-webapp-source.$CURRENT_COMMIT.$OSVCDIST"
     echo "REPO=$OSVCREPO" | sed -e 's/-rpms/-srpms/' >> $ARTIFACT
     SRPMF=$(ls -1 $RPMBUILDTOP/SRPMS/*.rpm)
     SRPM=$(basename $SRPMF)
