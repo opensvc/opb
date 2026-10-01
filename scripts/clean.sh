@@ -33,6 +33,15 @@ if [ -n "${RELEASE_NAME:-}" ] ; then
     exit 0
 fi
 
+# one publish/clean at a time: aptly takes an exclusive lock on its leveldb
+# database and parallel rundeck jobs made remote aptly commands fail.
+# task#prune of the pkgmgr service takes the same lock.
+exec 9>"${opbroot}/.aptly.lock"
+flock -w 1800 9 || {
+    echo "$0: timeout waiting for ${opbroot}/.aptly.lock"
+    exit 1
+}
+
 
 function cleanup_aptly_repo
 {
