@@ -50,8 +50,10 @@ Source0: ${LSOURCE0}.tar.gz
 %{?el9:Requires: systemd-rpm-macros}
 %{?el10:Requires: systemd-rpm-macros}
 License: ASL 2.0
-%define _source_filedigest_algorithm 1
-%define _binary_filedigest_algorithm 1
+# sha256 file digests: md5 ones can not be verified on fips enabled systems.
+# every supported rpm (rhel7 and later) handles sha256.
+%define _source_filedigest_algorithm 8
+%define _binary_filedigest_algorithm 8
 %define _source_payload w9.gzdio
 %define _binary_payload w9.gzdio
 %define osvc_server_binary_name om

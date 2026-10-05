@@ -242,6 +242,10 @@ function setup_gpg_repo() {
     echo -e "trust\n5\ny" | gpg --command-fd 0 --edit-key ${GPGKEYID}
 
     echo "batch" >> ~/.gnupg/gpg.conf
+    # sha256 signatures (rpm, dsc, changes): gpg 2.0 (rhel7) defaults to sha1,
+    # rejected by fips enabled systems and by recent rpm crypto policies
+    echo "personal-digest-preferences SHA256" >> ~/.gnupg/gpg.conf
+    echo "cert-digest-algo SHA256" >> ~/.gnupg/gpg.conf
 }
 
 ### main  ###
