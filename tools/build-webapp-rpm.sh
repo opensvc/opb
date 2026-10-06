@@ -58,8 +58,10 @@ Release: ${OSVC_PKGREV:-1}
 Source0: ${LSOURCE0}.tar.gz
 License: ASL 2.0
 AutoReqProv: no
-Conflicts: opensvc <= 2.2
 BuildArch: noarch
+# no "Conflicts: opensvc <= 2.2": opensvc-server provides an unversioned
+# "opensvc", which matches any versioned conflict in rpm. The opensvc 2 package
+# is replaced anyway, opensvc-server obsoletes it.
 Requires: opensvc-server
 # one rpm for every distro (rhel7 to rhel10, sles): sha256 file digests for
 # fips enabled systems, gzip payload readable by rhel7 rpm (no zstd)
