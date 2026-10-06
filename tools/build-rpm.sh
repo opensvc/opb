@@ -71,9 +71,10 @@ Summary: $SUMMARYSRV
 Provides: /usr/bin/%{osvc_server_binary_name}
 Provides: opensvc
 Obsoletes: opensvc < 2.2
-%{?el8:Recommends: sg3-utils, bash-completion, opensvc-client}
-%{?el9:Recommends: sg3-utils, bash-completion, opensvc-client}
-%{?el10:Recommends: sg3-utils, bash-completion, opensvc-client}
+%{?el8:Recommends: sg3-utils, bash-completion, opensvc-client, opensvc-webapp}
+%{?el9:Recommends: sg3-utils, bash-completion, opensvc-client, opensvc-webapp}
+%{?el10:Recommends: sg3-utils, bash-completion, opensvc-client, opensvc-webapp}
+%{?suse_version:Recommends: opensvc-webapp}
 %description server
 $DESCRIPTIONSRV
 
