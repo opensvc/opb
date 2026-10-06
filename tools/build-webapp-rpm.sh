@@ -65,9 +65,7 @@ BuildArch: noarch
 Requires: opensvc-server
 # one rpm for every distro (rhel7 to rhel10, sles): sha256 file digests for
 # fips enabled systems, gzip payload readable by rhel7 rpm (no zstd)
-%define _source_filedigest_algorithm 8
 %define _binary_filedigest_algorithm 8
-%define _source_payload w9.gzdio
 %define _binary_payload w9.gzdio
 
 %description
@@ -97,7 +95,7 @@ EOF
 ## %define _rpmfilename $RPMFNAME
 
 function build_rpm {
-    rpmbuild -vvv --debug --define "_topdir $RPMBUILDTOP" --clean -ba $SPECFILE
+    rpmbuild -vvv --debug --define "_topdir $RPMBUILDTOP" --clean -bb $SPECFILE
     ret=$?
 echo
     echo "rpmbuild ret code <$ret>"
@@ -130,25 +128,8 @@ function expose_data {
     test -d $DATAROOT && rm -rf $DATAROOT
     mkdir -p $DATAROOT
 
-    # source rpm file
-    ARTIFACT="$DATAROOT/opensvc-webapp-source.$CURRENT_COMMIT.$OSVCDIST"
-    echo "REPO=$OSVCREPO" | sed -e 's/-rpms/-srpms/' >> $ARTIFACT
-    SRPMF=$(ls -1 $RPMBUILDTOP/SRPMS/*.rpm)
-    SRPM=$(basename $SRPMF)
-    cp -f $RPMBUILDTOP/SRPMS/$SRPM $DATAROOT
-    echo "SRPM=$SRPM" >> $ARTIFACT
-    echo "PKGARCH=source" >> $ARTIFACT
-   
-    SRPMSHA256=$(sha256sum $DATAROOT/$SRPM | awk '{print $1}')
-    echo "SRPMSHA256=$SRPMSHA256" >> $ARTIFACT
-
-    echo "PATTERN=$PATTERN" >> $ARTIFACT
-
-    echo
-    cat $ARTIFACT
-    echo
-    check_data $ARTIFACT REPO SRPM SRPMSHA256 PATTERN || return 1
-
+    # binary package only: no source rpm, the webapp sources are the
+    # om3-webapp github release
     # noarch rpm files
     ARCH="noarch"
     for prefix in opensvc-webapp

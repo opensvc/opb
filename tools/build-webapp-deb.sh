@@ -27,20 +27,10 @@ function prepare_debbuildtop {
     [[ -d $DEBBUILDTOP ]] && sudo rm -rf $DEBBUILDTOP
     sudo mkdir -p $DEBBUILDTOP && sudo chown -Rh builder:builder $DEBBUILDTOP
 
-    rm -rf /run/tmp
-    mkdir -p /run/tmp
-    cd /run/tmp && {
-        mkdir opensvc-webapp-${PATTERN}
-        cp $INDEX ./opensvc-webapp-${PATTERN}/ || return 1
-	# reproducible orig tarball: every revision of a version must ship the
-	# same one, aptly refuses a different file with the same name in its pool
-	local MTIME=$(cd $OSVC && git log -1 --format=%ct)
-	tar --sort=name --mtime=@${MTIME} --owner=0 --group=0 --numeric-owner \
-	    -cvf - opensvc-webapp-${PATTERN} | gzip -n -9 > opensvc-webapp-${PATTERN}.tar.gz
-	mv opensvc-webapp-${PATTERN}.tar.gz $DEBBUILDTOP/opensvc-webapp_${PATTERN}.orig.tar.gz
-	cd -
-    }
-    ( cd $DEBBUILDTOP && tar xf opensvc-webapp_${PATTERN}.orig.tar.gz )
+    # binary package only: no source package, no orig tarball, the webapp
+    # sources are the om3-webapp github release
+    mkdir $DEBBUILDTOP/opensvc-webapp-${PATTERN} || return 1
+    cp $INDEX $DEBBUILDTOP/opensvc-webapp-${PATTERN}/ || return 1
 }
 
 function gen_changelog {
@@ -112,7 +102,7 @@ EOF
 
 function build_deb {
     (cd $DEBIANFILESDIR/.. && \
-        dpkg-buildpackage --build=full \
+        dpkg-buildpackage --build=binary \
                           --sign-key=${GPGKEYID} \
                           --hook-done=${ROOTSCRIPTS}/files/hook.done.sh \
                       )
@@ -144,8 +134,8 @@ function expose_data {
         cat $ARTIFACT
         check_data $ARTIFACT REPO DEB DEBSHA256 PATTERN PKGVERSION || return 1
     done
-    # copy all files
-    ( cd $DEBBUILDTOP && cp $(ls --file-type | grep -v '.*/$') $DATAROOT )
+    # deb package, and its signed changes and buildinfo files
+    ( cd $DEBBUILDTOP && cp opensvc-webapp_*.deb opensvc-webapp_*.changes opensvc-webapp_*.buildinfo $DATAROOT ) || return 1
 
     echo
     title "ls -l $DATAROOT"
