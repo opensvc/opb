@@ -187,10 +187,10 @@ function publish_apt_v2()
         done
         if [ "${OSVCWEBAPP:-false}" = true ] ; then
             # same release event sent again: the package version is already in the repository
-            ssh -q repoadmv2 "aptly repo search $LREPO 'opensvc-webapp (= $PKGVERSION)' >/dev/null 2>&1" && {
+            if ssh -q repoadmv2 "aptly repo search $LREPO 'opensvc-webapp (= $PKGVERSION)' >/dev/null 2>&1" ; then
                 echo "opensvc-webapp $PKGVERSION already present in $LREPO. skipping publication"
                 return 0
-            }
+            fi
         fi
         ssh -q repoadmv2 "find /data/aptly/public/apt/$flavor/pool -type f" > /tmp/pool.$flavor.list
         cat /tmp/pool.$flavor.list | grep "$PATTERN" > /tmp/pool.$flavor.list.filtered
@@ -219,28 +219,58 @@ function publish_apt_v2()
         else
             # pattern is not present in pool
             # need to upload files to repo
-	    ssh -q repoadmv2 "mkdir -p /data/tmp/$LREPO"
-            scp -q * repoadmv2:/data/tmp/$LREPO/
+            # every step is checked: a failure stops the publication with rc=1
+            ssh -q repoadmv2 "rm -rf /data/tmp/$LREPO && mkdir -p /data/tmp/$LREPO" || {
+                echo "$0: unable to prepare /data/tmp/$LREPO"
+                return 1
+            }
+            scp -q * repoadmv2:/data/tmp/$LREPO/ || {
+                echo "$0: unable to upload the packages to /data/tmp/$LREPO"
+                return 1
+            }
             ssh -q repoadmv2 "ls -l /data/tmp/$LREPO/"
-	    for file in $(ssh -q repoadmv2 "ls -1 /data/tmp/$LREPO" | grep -E ".deb$|.dsc$")
-	    do
-		echo "Adding $file to $LREPO"
-	        ssh -q repoadmv2 "aptly repo add $LREPO /data/tmp/$LREPO/$file"
-	    done
-	    TS=$(date --utc +%Y%m%d%H%M%SZ)
-	    ssh -q repoadmv2 "aptly snapshot create $TS-$LREPO from repo $LREPO" 
-	    # ca marche mais c'est pas top, un peu violent
-	    # aptly publish switch -force-overwrite dev-opensvc-v3-bookworm apt/debian 20260212083956Z-dev-opensvc-v3-bookworm
-	    # 
-	    before_snap=$(resolve_published_snap $LREPO $flavor)
-	    if [ -n "$before_snap" ]; then
-	        echo "before: snap $before_snap is published to $LREPO apt/$flavor"
-	        ssh -q repoadmv2 "aptly publish drop $LREPO apt/$flavor"
-	    fi
-	    ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $TS-$LREPO apt/$flavor"
-	    after_snap=$(resolve_published_snap $LREPO $flavor)
-	    echo "after: snap $after_snap is published to $LREPO apt/$flavor"
+            files=$(ssh -q repoadmv2 "ls -1 /data/tmp/$LREPO" | grep -E ".deb$|.dsc$")
+            if [ -z "$files" ] ; then
+                echo "$0: no deb or dsc file to add to $LREPO"
+                return 1
+            fi
+            for file in $files
+            do
+                echo "Adding $file to $LREPO"
+                ssh -q repoadmv2 "aptly repo add $LREPO /data/tmp/$LREPO/$file" || {
+                    echo "$0: unable to add $file to $LREPO"
+                    return 1
+                }
+            done
+            TS=$(date --utc +%Y%m%d%H%M%SZ)
+            ssh -q repoadmv2 "aptly snapshot create $TS-$LREPO from repo $LREPO" || {
+                echo "$0: unable to create snapshot $TS-$LREPO"
+                return 1
+            }
+            # ca marche mais c'est pas top, un peu violent
+            # aptly publish switch -force-overwrite dev-opensvc-v3-bookworm apt/debian 20260212083956Z-dev-opensvc-v3-bookworm
+            #
+            before_snap=$(resolve_published_snap $LREPO $flavor)
+            if [ -n "$before_snap" ]; then
+                echo "before: snap $before_snap is published to $LREPO apt/$flavor"
+                ssh -q repoadmv2 "aptly publish drop $LREPO apt/$flavor" || {
+                    echo "$0: unable to drop the publication of $LREPO apt/$flavor"
+                    return 1
+                }
+            fi
+            if ! ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $TS-$LREPO apt/$flavor" ; then
+                echo "$0: unable to publish snapshot $TS-$LREPO to $LREPO apt/$flavor"
+                # the distribution must not stay unpublished
+                if [ -n "$before_snap" ]; then
+                    echo "republishing the previous snapshot $before_snap"
+                    ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $before_snap apt/$flavor"
+                fi
+                return 1
+            fi
+            after_snap=$(resolve_published_snap $LREPO $flavor)
+            echo "after: snap $after_snap is published to $LREPO apt/$flavor"
             ssh -q repoadmv2 "rm -rf /data/tmp/$LREPO"
+            return 0
         fi
     }
 }
