@@ -91,22 +91,33 @@ function publish_rpm_v2()
     cd $pkgdir && {
         for manifest in $(ls -1 *.$pkgsuffix)
         do
-            ( . $manifest;
-              [[ $PKGARCH != 'source' ]] && {
-                  cat $manifest
-                  # noarch packages are served from the arch repositories
-                  [[ $PKGARCH == 'noarch' ]] && PKGARCH=x86_64
-                  ssh -q repoadmv2 "/usr/bin/test -f /data/rpm/$LREPO/$PKGARCH/$RPM && exit 0 || exit 1" && {
-                      echo "file $RPM already present in $LREPO. skipping publication"
-                      exit 0
-                  }
-                  scp -q $RPM repoadmv2:/data/rpm/$LREPO/$PKGARCH/
-                  OPTS=""
-                  [[ $QANAME == "rhel7" ]] && OPTS="--compatibility"
-                  ssh -q repoadmv2 "createrepo_c $OPTS --update /data/rpm/$LREPO/$PKGARCH"
-                  ssh -q repoadmv2 "gpg --yes -a --detach-sign --default-key \$GNUPGKEYID /data/rpm/$LREPO/$PKGARCH/repodata/repomd.xml"
-              }
-            )
+            # the subshell exits 0 when the package is published or skipped,
+            # and 1 on error, which fails the publication
+            ( . $manifest
+              if [[ $PKGARCH == 'source' ]] ; then
+                  # source packages are not published
+                  exit 0
+              fi
+              cat $manifest
+              # noarch packages are served from the arch repositories
+              if [[ $PKGARCH == 'noarch' ]] ; then
+                  PKGARCH=x86_64
+              fi
+              if ssh -q repoadmv2 "/usr/bin/test -f /data/rpm/$LREPO/$PKGARCH/$RPM && exit 0 || exit 1" ; then
+                  echo "file $RPM already present in $LREPO. skipping publication"
+                  exit 0
+              fi
+              OPTS=""
+              if [[ $QANAME == "rhel7" ]] ; then
+                  OPTS="--compatibility"
+              fi
+              scp -q $RPM repoadmv2:/data/rpm/$LREPO/$PKGARCH/ || exit 1
+              ssh -q repoadmv2 "createrepo_c $OPTS --update /data/rpm/$LREPO/$PKGARCH" || exit 1
+              ssh -q repoadmv2 "gpg --yes -a --detach-sign --default-key \$GNUPGKEYID /data/rpm/$LREPO/$PKGARCH/repodata/repomd.xml" || exit 1
+            ) || {
+                echo "$0: error while publishing $manifest to $LREPO"
+                return 1
+            }
         done
     }
 }
