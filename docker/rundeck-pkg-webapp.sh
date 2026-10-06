@@ -43,10 +43,21 @@ echo
 	echo "$0: variable CODE must be an om3-webapp release tag"
 	exit 1
 }
-${OPBROOT}/tools/fetch_release.sh opensvc om3-webapp "${CODE}" index.html || {
-	echo "$0: unable to fetch om3-webapp release ${CODE} index.html"
-	exit 1
-}
+# the om3-webapp github workflow attaches index.html to the release a few
+# minutes after its publication, which triggers this job: wait for it
+FETCH_TIMEOUT=1800
+FETCH_INTERVAL=30
+WAITED=0
+while ! ${OPBROOT}/tools/fetch_release.sh opensvc om3-webapp "${CODE}" index.html
+do
+	if [ $WAITED -ge $FETCH_TIMEOUT ] ; then
+		echo "$0: unable to fetch om3-webapp release ${CODE} index.html after ${WAITED}s"
+		exit 1
+	fi
+	echo "index.html not attached to release ${CODE} yet, retrying in ${FETCH_INTERVAL}s"
+	sleep $FETCH_INTERVAL
+	WAITED=$((WAITED + FETCH_INTERVAL))
+done
 
 # the webapp packages are distro independent: one deb (built on debian12) and
 # one noarch rpm (built on rhel9), published as is in every repository of
