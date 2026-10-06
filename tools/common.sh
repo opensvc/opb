@@ -142,6 +142,13 @@ function gen_pattern() {
         fi
     fi
 
+    # the webapp packages are distro independent: one deb and one rpm,
+    # published as is in every repository
+    if [ "${OSVCWEBAPP:-false}" = true ] ; then
+        echo $STR
+        return
+    fi
+
     grep -qi "ID=debian" /etc/os-release && {
         . /etc/os-release
         STR="$STR+deb$VERSION_ID"

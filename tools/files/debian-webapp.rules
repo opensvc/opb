@@ -2,3 +2,7 @@
 
 %:
 	dh $@
+
+# one deb for every distro: xz is readable by every supported dpkg, zstd is not
+override_dh_builddeb:
+	dh_builddeb -- -Zxz

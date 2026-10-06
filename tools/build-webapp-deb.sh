@@ -12,7 +12,7 @@ function changelog {
     ( cd $SRCROOT && \
       local PATTERN=$(gen_pattern)
       $GIT log --date=rfc2822 -n 1 --pretty=format:"opensvc-webapp (__V__) $TGTDIST; urgency=medium%n%n  * %s%n%n -- %an <%ae>  %ad%n" | \
-      awk -v VERSIONRELEASE="$PATTERN" '{ sub(/__V__/,VERSIONRELEASE,$0); print $0 }'
+      awk -v VERSIONRELEASE="$PATTERN-$OSVC_PKGREV" '{ sub(/__V__/,VERSIONRELEASE,$0); print $0 }'
     )
 }
 
@@ -32,7 +32,11 @@ function prepare_debbuildtop {
     cd /run/tmp && {
         mkdir opensvc-webapp-${PATTERN}
         cp $INDEX ./opensvc-webapp-${PATTERN}/ || return 1
-	tar czvf opensvc-webapp-${PATTERN}.tar.gz opensvc-webapp-${PATTERN}
+	# reproducible orig tarball: every revision of a version must ship the
+	# same one, aptly refuses a different file with the same name in its pool
+	local MTIME=$(cd $OSVC && git log -1 --format=%ct)
+	tar --sort=name --mtime=@${MTIME} --owner=0 --group=0 --numeric-owner \
+	    -cvf - opensvc-webapp-${PATTERN} | gzip -n -9 > opensvc-webapp-${PATTERN}.tar.gz
 	mv opensvc-webapp-${PATTERN}.tar.gz $DEBBUILDTOP/opensvc-webapp_${PATTERN}.orig.tar.gz
 	cd -
     }
@@ -102,7 +106,7 @@ chmod +x $DEBIANFILESDIR/opensvc-webapp.install
 function gen_source_format {
     mkdir -p $DEBIANFILESDIR/source
     cat - <<-EOF >$DEBIANFILESDIR/source/format
-3.0 (native)
+3.0 (quilt)
 EOF
 }
 
@@ -133,11 +137,12 @@ function expose_data {
         echo "DEBSHA256=$DEBSHA256" >> $ARTIFACT
 
         echo "PATTERN=$PATTERN" >> $ARTIFACT
+        echo "PKGVERSION=$PATTERN-$OSVC_PKGREV" >> $ARTIFACT
 
         echo
 	title $prefix
         cat $ARTIFACT
-        check_data $ARTIFACT REPO DEB DEBSHA256 PATTERN || return 1
+        check_data $ARTIFACT REPO DEB DEBSHA256 PATTERN PKGVERSION || return 1
     done
     # copy all files
     ( cd $DEBBUILDTOP && cp $(ls --file-type | grep -v '.*/$') $DATAROOT )
@@ -155,6 +160,9 @@ function cleanup {
 ######################################
 ######################################
 [[ -z "$OSVCDIST" ]] && exit 1
+# debian revision, the rpm release counterpart: bumped to republish a version
+# of the webapp after a packaging fix
+OSVC_PKGREV=${OSVC_PKGREV:-1}
 DEBBUILDTOP="$ROOTSCRIPTS/webapp-tmp/debbuild/${OSVCDIST}"
 CHANGELOG=$(changelog)
 PATTERN=$(gen_pattern)

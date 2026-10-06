@@ -48,10 +48,58 @@ ${OPBROOT}/tools/fetch_release.sh opensvc om3-webapp "${CODE}" index.html || {
 	exit 1
 }
 
-TIMESTAMP=$(date --utc +%Y%m%d%H%M%S)
-echo "${TIMESTAMP} docker run -e OSVCWEBAPP=true -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${NAME} -e OSVCREPO=$LREPO -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools -v ${HOME}/.cache:/cache --rm $NAME:pkgbuild om3-webapp-build" >> $0.log
+# the webapp packages are distro independent: one deb (built on debian12) and
+# one noarch rpm (built on rhel9), published as is in every repository of
+# their family. NAME only selects the family. The jobs of the other distros
+# reuse the packages built for the same CODE.
+case $NAME in
+rhel*|sles*)
+	PKGFAMILY=rpm-noarch
+	IMAGE=rhel9:pkgbuild
+	;;
+u2*|debian*)
+	PKGFAMILY=deb-noarch
+	IMAGE=debian12:pkgbuild
+	;;
+*)
+	echo "$0: unsupported distro: $NAME"
+	exit 1
+	;;
+esac
+# package revision (deb revision, rpm release), 1 unless a packaging fix
+# needs to republish a webapp version
+PKGREV=${PKGREV:-1}
+[[ $PKGREV =~ ^[1-9][0-9]*$ ]] || {
+	echo "$0: PKGREV must be a positive integer, got '${PKGREV}'"
+	exit 1
+}
+echo "PKGREV=$PKGREV"
 
-docker run -e OSVCWEBAPP=true -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${NAME} -e OSVCREPO=$LREPO -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools -v ${HOME}/.cache:/cache --rm $NAME:pkgbuild om3-webapp-build || {
+OUTDIR=${OPBROOT}/tools/webapp-out/${PKGFAMILY}
+BUILDID="CODE=${CODE} RELEASE_NAME=${RELEASE_NAME:-} PRERELEASE=${PRERELEASE:-} PKGREV=${PKGREV}"
+# outside OUTDIR, which the build container recreates as root
+BUILDIDFILE=${OPBROOT}/tools/webapp-out/.${PKGFAMILY}.buildid
+
+# rundeck runs the distro jobs in parallel: one build per family at a time
+mkdir -p ${OPBROOT}/tools/webapp-out
+exec 8>"${OPBROOT}/tools/webapp-out/.${PKGFAMILY}.lock"
+flock -w 1800 8 || {
+	echo "$0: timeout waiting for the ${PKGFAMILY} build lock"
+	exit 1
+}
+
+if [ "$(cat ${BUILDIDFILE} 2>/dev/null)" = "${BUILDID}" ] ; then
+	echo "${PKGFAMILY} packages already built for ${BUILDID}:"
+	ls -l ${OUTDIR}
+	exit 0
+fi
+
+rm -f ${BUILDIDFILE}
+TIMESTAMP=$(date --utc +%Y%m%d%H%M%S)
+echo "${TIMESTAMP} NAME=${NAME} docker run -e OSVCWEBAPP=true -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${PKGFAMILY} -e OSVCREPO=all -e OSVC_PKGREV=${PKGREV} -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools -v ${HOME}/.cache:/cache --rm ${IMAGE} om3-webapp-build" >> $0.log
+
+docker run -e OSVCWEBAPP=true -e OSVC_CODE_TO_BUILD=${CODE} -e OSVCDIST=${PKGFAMILY} -e OSVCREPO=all -e OSVC_PKGREV=${PKGREV} -e OSVC_RELEASE_NAME=${RELEASE_NAME} -e OSVC_PRERELEASE=${PRERELEASE} -v ${OPBROOT}/tools:/tools -v ${HOME}/.cache:/cache --rm ${IMAGE} om3-webapp-build || {
     echo "$0: error while trying to build webapp package"
     exit 1
 }
+echo "${BUILDID}" > ${BUILDIDFILE}

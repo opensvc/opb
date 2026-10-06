@@ -32,8 +32,21 @@ if [ -n "${RELEASE_NAME:-}" ] ; then
     [ "${PRERELEASE:-}" = true ] && LREPO=uat${LREPO#dev} || LREPO=prod${LREPO#dev}
 fi
 
+# package directory and manifest suffix
+pkgdir="$pkgroot/$QANAME"
+pkgsuffix="$QANAME"
+if [ "${OSVCWEBAPP:-false}" = true ] ; then
+    # one deb and one noarch rpm for every distro (see rundeck-pkg-webapp.sh)
+    case $QANAME in
+    rhel*|sles*) pkgsuffix=rpm-noarch ;;
+    *)           pkgsuffix=deb-noarch ;;
+    esac
+    pkgdir="$pkgroot/$pkgsuffix"
+fi
+
 echo "QANAME=$QANAME"
 echo "LREPO=$LREPO"
+echo "pkgdir=$pkgdir"
 echo
 
 [[ -z $LREPO ]] && {
@@ -52,8 +65,8 @@ flock -w 1800 9 || {
 
 function publish_rpm()
 {
-    cd $pkgroot/$QANAME && {
-        for manifest in $(ls -1 *.$QANAME)
+    cd $pkgdir && {
+        for manifest in $(ls -1 *.$pkgsuffix)
 	do
 	    ( . $manifest;
 	      [[ $PKGARCH != 'source' ]] && {
@@ -75,8 +88,8 @@ function publish_rpm()
 
 function publish_rpm_v2()
 {
-    cd $pkgroot/$QANAME && {
-        for manifest in $(ls -1 *.$QANAME)
+    cd $pkgdir && {
+        for manifest in $(ls -1 *.$pkgsuffix)
         do
             ( . $manifest;
               [[ $PKGARCH != 'source' ]] && {
@@ -108,9 +121,9 @@ function resolve_published_snap
 function publish_apt()
 {
     local flavor=$1
-    cd $pkgroot/$QANAME && {
+    cd $pkgdir && {
 	# for logging purposes
-        for manifest in $(ls -1 *.$QANAME)
+        for manifest in $(ls -1 *.$pkgsuffix)
         do
             cat $manifest ; . $manifest
         done
@@ -155,15 +168,24 @@ function get_package_list()
 function publish_apt_v2()
 {
     local flavor=$1
-    cd $pkgroot/$QANAME && {
+    cd $pkgdir && {
         # for logging purposes
-        for manifest in $(ls -1 *.$QANAME)
+        for manifest in $(ls -1 *.$pkgsuffix)
         do
             cat $manifest ; . $manifest
         done
+        if [ "${OSVCWEBAPP:-false}" = true ] ; then
+            # same release event sent again: the package version is already in the repository
+            ssh -q repoadmv2 "aptly repo search $LREPO 'opensvc-webapp (= $PKGVERSION)' >/dev/null 2>&1" && {
+                echo "opensvc-webapp $PKGVERSION already present in $LREPO. skipping publication"
+                return 0
+            }
+        fi
         ssh -q repoadmv2 "find /data/aptly/public/apt/$flavor/pool -type f" > /tmp/pool.$flavor.list
         cat /tmp/pool.$flavor.list | grep "$PATTERN" > /tmp/pool.$flavor.list.filtered
-        if [ -s /tmp/pool.$flavor.list.filtered ]; then
+        # the same webapp deb is added to every repository of the flavor: its
+        # files already in the pool are expected, and identical, aptly accepts them
+        if [ "${OSVCWEBAPP:-false}" != true ] && [ -s /tmp/pool.$flavor.list.filtered ]; then
             # found some entries in the pool
             # need to present found entries into repo
             echo "Found files matching pattern $PATTERN in /data/aptly/public/apt/$flavor/pool"
