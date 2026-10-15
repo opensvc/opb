@@ -15,6 +15,11 @@ env
 }
 
 LREPO=${REPOS[$QANAME]}
+if [ -n "${TARGETREPOENV:-}" ] ; then
+        echo "variable TARGETREPOENV is set to ${TARGETREPOENV}"
+        LREPO=$(echo $LREPO|sed -e "s@dev-@${TARGETREPOENV}-@")
+        echo "variable LREPO now points to ${LREPO}"
+fi
 if [ -n "${RELEASE_NAME:-}" ] ; then
     [ "${PRERELEASE:-}" = true ] && LREPO=uat${LREPO#dev} || LREPO=prod${LREPO#dev}
 fi
