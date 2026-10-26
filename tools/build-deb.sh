@@ -95,6 +95,7 @@ function gen_rules {
 
 function gen_units {
     cp $ROOTSCRIPTS/files/systemd.opensvc-server.service $DEBIANFILESDIR/opensvc-server.opensvc-server.service
+    cp $ROOTSCRIPTS/files/systemd.opensvc-slice.conf $DEBIANFILESDIR/opensvc-slice.conf
 }
 
 function setup_debsig {
@@ -113,6 +114,8 @@ function gen_install {
 #!/usr/bin/dh-exec
 bin/om => /usr/bin/om
 bin/compobj => /usr/lib/opensvc/compobj
+debian/opensvc-slice.conf => /usr/lib/systemd/system/opensvc.slice.d/10-opensvc-server.conf
+debian/opensvc-slice.conf => /usr/lib/systemd/system/opensvc-.slice.d/10-opensvc-server.conf
 EOF
 
     cat - <<-EOF >$DEBIANFILESDIR/opensvc-client.install

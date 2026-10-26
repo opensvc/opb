@@ -106,6 +106,8 @@ grep -qw ${TAG} binary.commit && echo "PASS: om binary version OK" || (echo "FAI
 #rm -rf "%{buildroot}"
 install -m 0755 -d "%{buildroot}"
 install -Dpm 0644 $ROOTSCRIPTS/files/systemd.opensvc-server.service %{buildroot}%{_unitdir}/opensvc-server.service
+install -Dpm 0644 $ROOTSCRIPTS/files/systemd.opensvc-slice.conf %{buildroot}%{_unitdir}/opensvc.slice.d/10-opensvc-server.conf
+install -Dpm 0644 $ROOTSCRIPTS/files/systemd.opensvc-slice.conf %{buildroot}%{_unitdir}/opensvc-.slice.d/10-opensvc-server.conf
 
 # /usr/bin/om
 install -Dpm 0755 bin/%{osvc_server_binary_name} %{buildroot}%{_bindir}/%{osvc_server_binary_name}
@@ -216,6 +218,10 @@ fi
 %attr(0755, root, root) %{_bindir}/%{osvc_server_binary_name}
 %attr(0755, root, root) %{_libdir}/opensvc/%{osvc_compobj_binary_name}
 %{_unitdir}/opensvc-server.service
+%dir %{_unitdir}/opensvc.slice.d
+%{_unitdir}/opensvc.slice.d/10-opensvc-server.conf
+%dir %{_unitdir}/opensvc-.slice.d
+%{_unitdir}/opensvc-.slice.d/10-opensvc-server.conf
 
 %files client
 %defattr(0644,root,root,0755)
