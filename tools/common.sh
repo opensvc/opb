@@ -55,11 +55,18 @@ ARCH=$(arch)
 
 function changelog() {
     ( cd $OSVC && \
-        git log -n 100 --pretty=format:"* %cd %an <%ae>%n- %s" | \
-    # strip tz
-    sed -e "s/ [+\-][0-1][0-9][0-5][0-9] / /g" | \
-    # strip time
-    sed -e "s/ [0-2][0-9]:[0-5][0-9]:[0-5][0-9] / /g" | sed -e "s/%//"
+        git log -n 100 --pretty=format:"* %ct %an <%ae>%n- %s" | \
+    # rpm wants the entries in descending date order: clamp each commit
+    # timestamp to the previous one (merge commits made by github are in
+    # utc, rebased commits keep their old dates), then render it in utc
+    awk '/^\* [0-9]+ / {
+        if (prev != "" && $2 > prev) $2 = prev
+        prev = $2
+        cmd = "date -u -d @" $2 " \"+%a %b %d %Y\""
+        cmd | getline d
+        close(cmd)
+        $2 = d
+    } 1' | sed -e "s/%//"
     )
 }
 
