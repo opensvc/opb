@@ -176,6 +176,41 @@ function get_package_list()
     echo 
 }
 
+# Snapshot $LREPO and publish the snapshot in place of the previous one
+#   publish_apt_repo <flavor>
+function publish_apt_repo()
+{
+    local flavor=$1
+    TS=$(date --utc +%Y%m%d%H%M%SZ)
+    ssh -q repoadmv2 "aptly snapshot create $TS-$LREPO from repo $LREPO" || {
+        echo "$0: unable to create snapshot $TS-$LREPO"
+        return 1
+    }
+    # ca marche mais c'est pas top, un peu violent
+    # aptly publish switch -force-overwrite dev-opensvc-v3-bookworm apt/debian 20260212083956Z-dev-opensvc-v3-bookworm
+    #
+    before_snap=$(resolve_published_snap $LREPO $flavor)
+    if [ -n "$before_snap" ]; then
+        echo "before: snap $before_snap is published to $LREPO apt/$flavor"
+        ssh -q repoadmv2 "aptly publish drop $LREPO apt/$flavor" || {
+            echo "$0: unable to drop the publication of $LREPO apt/$flavor"
+            return 1
+        }
+    fi
+    if ! ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $TS-$LREPO apt/$flavor" ; then
+        echo "$0: unable to publish snapshot $TS-$LREPO to $LREPO apt/$flavor"
+        # the distribution must not stay unpublished
+        if [ -n "$before_snap" ]; then
+            echo "republishing the previous snapshot $before_snap"
+            ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $before_snap apt/$flavor"
+        fi
+        return 1
+    fi
+    after_snap=$(resolve_published_snap $LREPO $flavor)
+    echo "after: snap $after_snap is published to $LREPO apt/$flavor"
+    return 0
+}
+
 function publish_apt_v2()
 {
     local flavor=$1
@@ -202,20 +237,28 @@ function publish_apt_v2()
             echo "Found files matching pattern $PATTERN in /data/aptly/public/apt/$flavor/pool"
             cat /tmp/pool.$flavor.list.filtered
             echo
-	    #[[ $vech = B* ]] &&
-            #for file in $(cat /tmp/pool.$flavor.list.filtered | grep -E '.deb$|.dsc$')
-            #do
-            #    action="${file##*.}"
-            #    echo "Adding $file to $LREPO"
-            #    echo "reprepro -b /data/apt/$flavor include$action $LREPO $file"
-            #    ssh -q repoadm "reprepro -b /data/apt/$flavor include$action $LREPO $file"
-            #done
-	    echo "2DO 2DO 2DO"
-	    # pour chaque entree:
-	    #   build liste repo des publications pour ce package
-	    #   pour chaque repo:
-	    #     retirer/ajouter/publier
-	    exit 1
+            # the same version was built for another repository: copy its
+            # packages from there, the pool keeps one copy of the files
+            local query="\$Version (= $PATTERN)"
+            local repo src=""
+            for repo in $(ssh -q repoadmv2 "aptly repo list -raw") ; do
+                [ "$repo" = "$LREPO" ] && continue
+                if ssh -q repoadmv2 "aptly repo search $repo '$query' >/dev/null 2>&1" ; then
+                    src=$repo
+                    break
+                fi
+            done
+            if [ -z "$src" ] ; then
+                echo "$0: no repository holds the packages $PATTERN found in the pool"
+                return 1
+            fi
+            echo "Copying the packages $PATTERN from $src to $LREPO"
+            ssh -q repoadmv2 "aptly repo copy $src $LREPO '$query'" || {
+                echo "$0: unable to copy the packages $PATTERN from $src to $LREPO"
+                return 1
+            }
+            publish_apt_repo $flavor
+            return
         else
             # pattern is not present in pool
             # need to upload files to repo
@@ -242,33 +285,7 @@ function publish_apt_v2()
                     return 1
                 }
             done
-            TS=$(date --utc +%Y%m%d%H%M%SZ)
-            ssh -q repoadmv2 "aptly snapshot create $TS-$LREPO from repo $LREPO" || {
-                echo "$0: unable to create snapshot $TS-$LREPO"
-                return 1
-            }
-            # ca marche mais c'est pas top, un peu violent
-            # aptly publish switch -force-overwrite dev-opensvc-v3-bookworm apt/debian 20260212083956Z-dev-opensvc-v3-bookworm
-            #
-            before_snap=$(resolve_published_snap $LREPO $flavor)
-            if [ -n "$before_snap" ]; then
-                echo "before: snap $before_snap is published to $LREPO apt/$flavor"
-                ssh -q repoadmv2 "aptly publish drop $LREPO apt/$flavor" || {
-                    echo "$0: unable to drop the publication of $LREPO apt/$flavor"
-                    return 1
-                }
-            fi
-            if ! ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $TS-$LREPO apt/$flavor" ; then
-                echo "$0: unable to publish snapshot $TS-$LREPO to $LREPO apt/$flavor"
-                # the distribution must not stay unpublished
-                if [ -n "$before_snap" ]; then
-                    echo "republishing the previous snapshot $before_snap"
-                    ssh -q repoadmv2 "aptly publish snapshot -distribution="$LREPO" $before_snap apt/$flavor"
-                fi
-                return 1
-            fi
-            after_snap=$(resolve_published_snap $LREPO $flavor)
-            echo "after: snap $after_snap is published to $LREPO apt/$flavor"
+            publish_apt_repo $flavor || return 1
             ssh -q repoadmv2 "rm -rf /data/tmp/$LREPO"
             return 0
         fi

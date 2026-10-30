@@ -7,8 +7,6 @@ opbroot="${opbscripts}/.."
 set -x
 QANAME=$1
 
-env
-
 [[ -z ${QANAME} ]] && {
     echo "Please give target distribution as argument"
     exit 1
