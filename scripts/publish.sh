@@ -177,16 +177,22 @@ function get_package_list()
     echo
 }
 
-# The webapp is published apart, in every repository of the flavor: a lab
-# repository emptied for a run gets it back from the dev repository
+# The webapp is released apart, in the prod repositories: a lab repository
+# emptied for a run gets the last release from the prod repository
 function copy_apt_webapp()
 {
     [ -n "${TARGETREPOENV:-}" ] && [ -z "${RELEASE_NAME:-}" ] || return 0
-    [ "$LREPO" != "$DEVREPO" ] || return 0
+    local src=prod${DEVREPO#dev}
+    [ "$LREPO" != "$src" ] || return 0
     ssh -q repoadmv2 "aptly repo search $LREPO opensvc-webapp >/dev/null 2>&1" && return 0
-    echo "Copying opensvc-webapp from $DEVREPO to $LREPO"
-    ssh -q repoadmv2 "aptly repo copy $DEVREPO $LREPO opensvc-webapp" || {
-        echo "$0: unable to copy opensvc-webapp from $DEVREPO to $LREPO"
+    local version=$(ssh -q repoadmv2 "aptly repo search $src opensvc-webapp" | sed -n 's/^opensvc-webapp_\([^_]*\)_.*/\1/p' | sort -V | tail -1)
+    if [ -z "$version" ] ; then
+        echo "$0: no opensvc-webapp in $src"
+        return 1
+    fi
+    echo "Copying opensvc-webapp $version from $src to $LREPO"
+    ssh -q repoadmv2 "aptly repo copy $src $LREPO 'opensvc-webapp (= $version)'" || {
+        echo "$0: unable to copy opensvc-webapp $version from $src to $LREPO"
         return 1
     }
 }
