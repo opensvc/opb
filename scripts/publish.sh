@@ -22,6 +22,7 @@ echo "$0 starting..."
 }
 
 LREPO=${REPOS[$QANAME]}
+DEVREPO=$LREPO
 if [ -n "${TARGETREPOENV:-}" ] ; then
         echo "variable TARGETREPOENV is set to ${TARGETREPOENV}"
         LREPO=$(echo $LREPO|sed -e "s@dev-@${TARGETREPOENV}-@")
@@ -173,7 +174,21 @@ function publish_apt()
 
 function get_package_list()
 {
-    echo 
+    echo
+}
+
+# The webapp is published apart, in every repository of the flavor: a lab
+# repository emptied for a run gets it back from the dev repository
+function copy_apt_webapp()
+{
+    [ -n "${TARGETREPOENV:-}" ] && [ -z "${RELEASE_NAME:-}" ] || return 0
+    [ "$LREPO" != "$DEVREPO" ] || return 0
+    ssh -q repoadmv2 "aptly repo search $LREPO opensvc-webapp >/dev/null 2>&1" && return 0
+    echo "Copying opensvc-webapp from $DEVREPO to $LREPO"
+    ssh -q repoadmv2 "aptly repo copy $DEVREPO $LREPO opensvc-webapp" || {
+        echo "$0: unable to copy opensvc-webapp from $DEVREPO to $LREPO"
+        return 1
+    }
 }
 
 # Snapshot $LREPO and publish the snapshot in place of the previous one
@@ -181,6 +196,7 @@ function get_package_list()
 function publish_apt_repo()
 {
     local flavor=$1
+    copy_apt_webapp || return 1
     TS=$(date --utc +%Y%m%d%H%M%SZ)
     ssh -q repoadmv2 "aptly snapshot create $TS-$LREPO from repo $LREPO" || {
         echo "$0: unable to create snapshot $TS-$LREPO"
